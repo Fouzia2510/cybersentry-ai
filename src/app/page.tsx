@@ -1,69 +1,345 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+
+const navigation = [
+  { name: "Overview", icon: "◫" },
+  { name: "Website Scanner", icon: "⌕" },
+  { name: "Threat Intelligence", icon: "◈" },
+  { name: "Vulnerabilities", icon: "⚠" },
+  { name: "Security Reports", icon: "▤" },
+];
+
+const events = [
+  { type: "Critical", title: "SQL injection exposure", target: "example.test", time: "2 min ago" },
+  { type: "High", title: "Missing security headers", target: "demo.test", time: "18 min ago" },
+  { type: "Medium", title: "Outdated TLS configuration", target: "sample.test", time: "1 hour ago" },
+  { type: "Low", title: "Information disclosure review", target: "portal.test", time: "3 hours ago" },
+];
 
 export default function Home() {
+  const [active, setActive] = useState("Overview");
+  const [url, setUrl] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState("");
+
+  function runDemoScan() {
+    if (!url.trim()) {
+      setScanMessage("Please enter a website URL first.");
+      return;
+    }
+
+    try {
+      const normalized = url.match(/^https?:\/\//i) ? url : `https://${url}`;
+      const parsed = new URL(normalized);
+
+      if (!parsed.hostname.includes(".")) {
+        setScanMessage("Please enter a valid website domain.");
+        return;
+      }
+    } catch {
+      setScanMessage("Please enter a valid website URL.");
+      return;
+    }
+
+    setScanning(true);
+    setScanMessage("Demo scan running...");
+
+    window.setTimeout(() => {
+      setScanning(false);
+      setScanMessage(
+        "Demo completed. No website was contacted and no real security scan was performed."
+      );
+    }, 1600);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-icon">C</div>
+          <div>
+            <h1>CyberSentry<span>AI</span></h1>
+            <p>SECURITY INTELLIGENCE</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="workspace">
+          <span className="workspace-dot" />
+          PERSONAL WORKSPACE
         </div>
-      </main>
-    </div>
+
+        <p className="nav-label">PLATFORM</p>
+
+        <nav className="navigation">
+          {navigation.map((item) => (
+            <button
+              key={item.name}
+              onClick={() => setActive(item.name)}
+              className={`nav-item ${active === item.name ? "active" : ""}`}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              {item.name}
+              {item.name === "Vulnerabilities" && (
+                <span className="nav-count">4</span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        <p className="nav-label tools-label">SYSTEM</p>
+
+        <button
+          className={`nav-item ${active === "Settings" ? "active" : ""}`}
+          onClick={() => setActive("Settings")}
+        >
+          <span className="nav-icon">⚙</span>
+          Settings
+        </button>
+
+        <div className="sidebar-bottom">
+          <div className="upgrade-card">
+            <div className="upgrade-icon">✦</div>
+            <h3>Security starts here.</h3>
+            <p>Build a stronger security posture with CyberSentryAI.</p>
+            <span>DEVELOPMENT EDITION</span>
+          </div>
+
+          <div className="profile">
+            <div className="avatar">F</div>
+            <div>
+              <strong>Workspace Owner</strong>
+              <small>Administrator</small>
+            </div>
+            <span className="profile-menu">•••</span>
+          </div>
+        </div>
+      </aside>
+
+      <section className="main-area">
+        <header className="topbar">
+          <div className="breadcrumb">
+            <span>Workspace</span>
+            <span>/</span>
+            <strong>{active}</strong>
+          </div>
+
+          <div className="topbar-right">
+            <span className="environment">
+              <span className="status-dot" />
+              DEVELOPMENT
+            </span>
+            <button
+              className="notification-button"
+              aria-label="Notifications"
+              onClick={() => setActive("Security Reports")}
+            >
+              ♧
+              <i />
+            </button>
+            <div className="top-avatar">F</div>
+          </div>
+        </header>
+
+        <div className="dashboard-content">
+          <div className="welcome-row">
+            <div>
+              <div className="eyebrow">
+                <span className="live-dot" />
+                SECURITY OPERATIONS CENTER
+              </div>
+              <h2>
+                {active === "Overview"
+                  ? "Security overview"
+                  : active}
+              </h2>
+              <p>
+                Your cybersecurity workspace. Monitor, assess and improve
+                your security posture.
+              </p>
+            </div>
+
+            <button
+              className="secondary-button"
+              onClick={() => {
+                setActive("Overview");
+                setScanMessage("");
+              }}
+            >
+              ↻ Refresh dashboard
+            </button>
+          </div>
+
+          {active !== "Overview" && (
+            <div className="section-notice">
+              <strong>{active}</strong>
+              <p>
+                This module is part of the CyberSentryAI development roadmap.
+                Its production functionality will be added in a future release.
+              </p>
+              <button onClick={() => setActive("Overview")}>
+                Return to overview →
+              </button>
+            </div>
+          )}
+
+          <div className="stats-grid">
+            <article className="stat-card">
+              <div className="stat-top">
+                <span>SECURITY SCORE</span>
+                <span className="stat-icon blue">◈</span>
+              </div>
+              <div className="stat-value">--<small>/100</small></div>
+              <div className="stat-footer">Awaiting real security assessment</div>
+            </article>
+
+            <article className="stat-card">
+              <div className="stat-top">
+                <span>MONITORED WEBSITES</span>
+                <span className="stat-icon cyan">◎</span>
+              </div>
+              <div className="stat-value">00</div>
+              <div className="stat-footer">No websites connected</div>
+            </article>
+
+            <article className="stat-card">
+              <div className="stat-top">
+                <span>VULNERABILITIES</span>
+                <span className="stat-icon orange">⚠</span>
+              </div>
+              <div className="stat-value">--</div>
+              <div className="stat-footer">No real scan data available</div>
+            </article>
+
+            <article className="stat-card">
+              <div className="stat-top">
+                <span>ACTIVE THREATS</span>
+                <span className="stat-icon red">⌁</span>
+              </div>
+              <div className="stat-value">--</div>
+              <div className="stat-footer">Threat monitoring not connected</div>
+            </article>
+          </div>
+
+          <section className="scanner-panel">
+            <div className="panel-heading">
+              <div>
+                <div className="eyebrow">WEBSITE SECURITY</div>
+                <h3>Website scanner</h3>
+                <p>Start a demonstration of the website assessment workflow.</p>
+              </div>
+              <div className="scanner-symbol">⌕</div>
+            </div>
+
+            <div className="scan-form">
+              <div className="url-input-wrap">
+                <span>↗</span>
+                <input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") runDemoScan();
+                  }}
+                  placeholder="Enter a website URL (e.g. https://example.com)"
+                  aria-label="Website URL"
+                />
+              </div>
+              <button
+                className="scan-button"
+                onClick={runDemoScan}
+                disabled={scanning}
+              >
+                {scanning ? "Scanning..." : "Run demo scan →"}
+              </button>
+            </div>
+
+            {scanMessage && (
+              <div className="scan-message" role="status">
+                {scanMessage}
+              </div>
+            )}
+
+            <div className="scan-disclaimer">
+              <span>ⓘ</span>
+              Demonstration only. This frontend does not contact or scan the
+              entered website.
+            </div>
+          </section>
+
+          <div className="lower-grid">
+            <section className="content-panel">
+              <div className="panel-title">
+                <div>
+                  <h3>Security activity</h3>
+                  <p>Illustrative events for the dashboard preview</p>
+                </div>
+                <button onClick={() => setActive("Security Reports")}>
+                  View all →
+                </button>
+              </div>
+
+              <div className="event-list">
+                {events.map((event, index) => (
+                  <div className="event-row" key={index}>
+                    <span className={`event-indicator ${event.type.toLowerCase()}`}>
+                      !
+                    </span>
+                    <div className="event-info">
+                      <strong>{event.title}</strong>
+                      <small>{event.target}</small>
+                    </div>
+                    <span className={`severity ${event.type.toLowerCase()}`}>
+                      {event.type}
+                    </span>
+                    <time>{event.time}</time>
+                  </div>
+                ))}
+              </div>
+              <div className="demo-label">
+                SAMPLE DATA · NOT LIVE SECURITY FINDINGS
+              </div>
+            </section>
+
+            <section className="content-panel intelligence-panel">
+              <div className="panel-title">
+                <div>
+                  <h3>AI security analyst</h3>
+                  <p>Intelligence workspace</p>
+                </div>
+                <span className="ai-badge">AI</span>
+              </div>
+
+              <div className="ai-visual">
+                <div className="ai-orbit">✦</div>
+              </div>
+
+              <h4>Intelligent security analysis</h4>
+              <p className="ai-description">
+                Analyze security findings, understand risks and receive
+                actionable remediation guidance.
+              </p>
+
+              <div className="ai-status">
+                <span className="status-dot muted" />
+                AI engine not connected
+              </div>
+
+              <button
+                className="ai-button"
+                onClick={() => setActive("Threat Intelligence")}
+              >
+                Explore intelligence →
+              </button>
+            </section>
+          </div>
+
+          <footer className="footer">
+            <span>© 2026 CyberSentryAI</span>
+            <span>SECURE BY DESIGN · BUILT FOR DEFENSE</span>
+            <span>v0.1.0 · DEVELOPMENT</span>
+          </footer>
+        </div>
+      </section>
+    </main>
   );
 }
