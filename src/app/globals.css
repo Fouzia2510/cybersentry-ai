@@ -1035,3 +1035,101 @@ button {
     padding: 25px 20px;
   }
 }
+
+
+.auth-nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid #31546b;
+  border-radius: 6px;
+  background: #13283a;
+  color: #70d9e9;
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.auth-nav-button:hover {
+  border-color: #55c9de;
+  background: #18364b;
+}
+
+.domain-management {
+  margin-bottom: 22px;
+}
+
+.domain-management .panel-title > button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.domain-empty {
+  margin: 22px 0 10px;
+  color: #91a2b8;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.domain-list {
+  margin-top: 18px;
+}
+
+.domain-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid #263448;
+}
+
+.domain-row strong,
+.domain-row small {
+  display: block;
+}
+
+.domain-row strong {
+  color: #e6effb;
+  font-size: 12px;
+}
+
+.domain-row small {
+  margin-top: 5px;
+  color: #8193aa;
+  font-size: 9px;
+}
+
+.domain-status {
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.domain-status.verified {
+  border: 1px solid #286451;
+  background: #17372f;
+  color: #85dfbd;
+}
+
+.domain-status.pending {
+  border: 1px solid #67512c;
+  background: #382f1d;
+  color: #e8c779;
+}
+
+.domain-note {
+  margin: 17px 0 0;
+  color: #8193aa;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.domain-error {
+  margin-top: 18px;
+  color: #ffabb7;
+  font-size: 11px;
+}
