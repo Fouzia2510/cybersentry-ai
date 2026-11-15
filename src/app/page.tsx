@@ -23,34 +23,36 @@ export default function Home() {
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
 
-  function runDemoScan() {
+  async function validateDomain() {
     if (!url.trim()) {
-      setScanMessage("Please enter a website URL first.");
-      return;
-    }
-
-    try {
-      const normalized = url.match(/^https?:\/\//i) ? url : `https://${url}`;
-      const parsed = new URL(normalized);
-
-      if (!parsed.hostname.includes(".")) {
-        setScanMessage("Please enter a valid website domain.");
-        return;
-      }
-    } catch {
-      setScanMessage("Please enter a valid website URL.");
+      setScanMessage("Please enter a website domain first.");
       return;
     }
 
     setScanning(true);
-    setScanMessage("Demo scan running...");
+    setScanMessage("Validating domain format...");
 
-    window.setTimeout(() => {
-      setScanning(false);
+    try {
+      const response = await fetch("/api/domains/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: url }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        setScanMessage(result.error || "Domain validation failed.");
+        return;
+      }
+
       setScanMessage(
-        "Demo completed. No website was contacted and no real security scan was performed."
+        `Domain format accepted: ${result.normalizedUrl}. Ownership verification and security scanning are not available yet.`
       );
-    }, 1600);
+    } catch {
+      setScanMessage("Could not reach the validation API. Please try again.");
+    } finally {
+      setScanning(false);
+    }
   }
 
   return (
@@ -226,7 +228,7 @@ export default function Home() {
               <div>
                 <div className="eyebrow">WEBSITE SECURITY</div>
                 <h3>Website scanner</h3>
-                <p>Start a demonstration of the website assessment workflow.</p>
+                <p>Check whether a domain is valid before connecting it.</p>
               </div>
               <div className="scanner-symbol">⌕</div>
             </div>
@@ -238,18 +240,18 @@ export default function Home() {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") runDemoScan();
+                    if (e.key === "Enter") validateDomain();
                   }}
-                  placeholder="Enter a website URL (e.g. https://example.com)"
+                  placeholder="Enter a domain (e.g. example.com)"
                   aria-label="Website URL"
                 />
               </div>
               <button
                 className="scan-button"
-                onClick={runDemoScan}
+                onClick={validateDomain}
                 disabled={scanning}
               >
-                {scanning ? "Scanning..." : "Run demo scan →"}
+                {scanning ? "Validating..." : "Validate domain →"}
               </button>
             </div>
 
@@ -261,8 +263,8 @@ export default function Home() {
 
             <div className="scan-disclaimer">
               <span>ⓘ</span>
-              Demonstration only. This frontend does not contact or scan the
-              entered website.
+              Domain validation only. No website is contacted, saved, ownership-verified,
+              or scanned.
             </div>
           </section>
 
