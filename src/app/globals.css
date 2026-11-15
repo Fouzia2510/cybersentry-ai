@@ -1133,3 +1133,100 @@ button {
   color: #ffabb7;
   font-size: 11px;
 }
+
+
+.domain-connect {
+  margin-top: 20px;
+}
+.domain-input-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #c7d4e5;
+  font-size: 11px;
+  font-weight: 600;
+}
+.domain-connect-form {
+  display: flex;
+  gap: 10px;
+}
+.domain-connect-form input {
+  flex: 1;
+  min-width: 0;
+  height: 43px;
+  padding: 0 12px;
+  border: 1px solid #304057;
+  border-radius: 7px;
+  background: #0a1422;
+  color: #eef4ff;
+  font-size: 12px;
+}
+.domain-connect-form button,
+.dns-challenge > button {
+  min-height: 43px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 7px;
+  background: linear-gradient(110deg, #287ecf, #287fbc);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+}
+.domain-connect-form button:disabled,
+.dns-challenge > button:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+.domain-action-message {
+  margin: 14px 0;
+  color: #9ce5ee;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.dns-challenge {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #31516a;
+  border-radius: 9px;
+  background: #0d1b2a;
+}
+.dns-challenge h4 {
+  margin: 0 0 8px;
+  color: #e6effb;
+  font-size: 13px;
+}
+.dns-challenge p {
+  color: #91a2b8;
+  font-size: 11px;
+}
+.dns-challenge dl {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+.dns-challenge dl > div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+}
+.dns-challenge dt {
+  color: #8193aa;
+  font-size: 10px;
+}
+.dns-challenge dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #e6effb;
+  font-size: 11px;
+}
+.dns-challenge .dns-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (max-width: 520px) {
+  .domain-connect-form {
+    flex-direction: column;
+  }
+  .dns-challenge dl > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
