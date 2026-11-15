@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { validatePublicDomain } from "@/lib/security/domain-validation";
 
-export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   let body: unknown;
