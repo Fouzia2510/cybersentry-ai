@@ -1,11 +1,20 @@
 import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
 import { validatePublicDomain } from "@/lib/security/domain-validation";
-import { getAccessToken, getAuthenticatedUser, supabaseUserRequest } from "@/lib/supabase-rest";
+import {
+  getAccessToken,
+  getAuthenticatedUser,
+  isSameOriginRequest,
+  supabaseUserRequest,
+} from "@/lib/supabase-rest";
 
 const CHALLENGE_TTL_SECONDS = 30 * 60;
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-origin request rejected." }, { status: 403 });
+  }
+
   const accessToken = await getAccessToken();
   if (!accessToken) return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
   try {
@@ -59,7 +68,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Supabase configuration or request failed." }, { status: 503 });
   }
 }
-
 
 type DomainRow = {
   id: string;
