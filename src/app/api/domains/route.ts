@@ -59,3 +59,58 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Supabase configuration or request failed." }, { status: 503 });
   }
 }
+
+
+type DomainRow = {
+  id: string;
+  domain: string;
+  verification_status: "pending" | "verified";
+  verified_at: string | null;
+  created_at: string;
+};
+
+export async function GET() {
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
+  }
+
+  try {
+    const user = await getAuthenticatedUser(accessToken);
+    if (!user) {
+      return NextResponse.json(
+        { error: "Your session has expired. Sign in again." },
+        { status: 401 },
+      );
+    }
+
+    const response = await supabaseUserRequest(
+      "domains?select=id,domain,verification_status,verified_at,created_at&order=created_at.desc",
+      accessToken,
+    );
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: "Could not load your domains. Check the database migration and RLS policies." },
+        { status: 503 },
+      );
+    }
+
+    const domains = (await response.json()) as DomainRow[];
+    return NextResponse.json({
+      ok: true,
+      domains: domains.map((domain) => ({
+        id: domain.id,
+        domain: domain.domain,
+        verificationStatus: domain.verification_status,
+        verifiedAt: domain.verified_at,
+        createdAt: domain.created_at,
+      })),
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Supabase configuration or request failed." },
+      { status: 503 },
+    );
+  }
+}
