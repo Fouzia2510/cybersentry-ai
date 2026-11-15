@@ -187,7 +187,12 @@ export default function Home() {
           </div>
 
           <div className="topbar-right">
-            {userEmail ? (\n              <button className="auth-nav-button" onClick={handleLogout}>Sign out</button>\n            ) : (\n              <a className="auth-nav-button" href="/login">Sign in</a>\n            )}\n            <span className="environment">
+            {userEmail ? (
+              <button className="auth-nav-button" onClick={handleLogout}>Sign out</button>
+            ) : (
+              <a className="auth-nav-button" href="/login">Sign in</a>
+            )}
+            <span className="environment">
               <span className="status-dot" />
               DEVELOPMENT
             </span>
