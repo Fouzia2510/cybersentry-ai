@@ -24,11 +24,6 @@ create policy "Users can create their own domains"
   on public.domains for insert to authenticated
   with check ((select auth.uid()) = user_id);
 
-drop policy if exists "Users can update their own domains" on public.domains;
-create policy "Users can update their own domains"
-  on public.domains for update to authenticated
-  using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
 
 create or replace function public.mark_domain_verified(p_domain text)
 returns table (
@@ -54,4 +49,4 @@ revoke all on function public.mark_domain_verified(text) from public;
 revoke all on function public.mark_domain_verified(text) from anon;
 grant execute on function public.mark_domain_verified(text) to authenticated;
 
-grant select, insert, update on public.domains to authenticated;
+grant select, insert on public.domains to authenticated;
