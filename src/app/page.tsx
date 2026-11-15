@@ -27,6 +27,15 @@ export default function Home() {
   const [domains, setDomains] = useState<Array<{ id: string; domain: string; verificationStatus: string; createdAt: string }>>([]);
   const [domainLoading, setDomainLoading] = useState(true);
   const [domainError, setDomainError] = useState("");
+  const [domainInput, setDomainInput] = useState("");
+  const [challenge, setChallenge] = useState<{
+    domain: string;
+    recordName: string;
+    recordValue: string;
+    expiresAt: string;
+  } | null>(null);
+  const [domainActionBusy, setDomainActionBusy] = useState(false);
+  const [domainActionMessage, setDomainActionMessage] = useState("");
 
   async function refreshDomains() {
     setDomainLoading(true);
@@ -44,6 +53,66 @@ export default function Home() {
       setDomainError("Could not reach the domain service.");
     } finally {
       setDomainLoading(false);
+    }
+  }
+
+  async function createDomainChallenge() {
+    if (!userEmail) {
+      setDomainActionMessage("Sign in first to connect a domain.");
+      return;
+    }
+    setDomainActionBusy(true);
+    setDomainActionMessage("");
+    setChallenge(null);
+    try {
+      const response = await fetch("/api/domains", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: domainInput }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setDomainActionMessage(result.error || "Could not create a DNS challenge.");
+        return;
+      }
+      setChallenge({
+        domain: result.domain,
+        recordName: result.recordName,
+        recordValue: result.recordValue,
+        expiresAt: result.expiresAt,
+      });
+      setDomainActionMessage("Add this TXT record to your domain's DNS, then select Verify ownership.");
+      await refreshDomains();
+    } catch {
+      setDomainActionMessage("Could not reach the domain service. Please try again.");
+    } finally {
+      setDomainActionBusy(false);
+    }
+  }
+
+  async function verifyDomainOwnership() {
+    if (!challenge) return;
+    setDomainActionBusy(true);
+    setDomainActionMessage("");
+    try {
+      const response = await fetch("/api/domains/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: challenge.domain, token: challenge.recordValue }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setDomainActionMessage(result.error || "Domain verification failed.");
+        return;
+      }
+      setDomainActionMessage("Domain ownership verified successfully.");
+      setChallenge(null);
+      setDomainInput("");
+      await refreshDomains();
+    } catch {
+      setDomainActionMessage("Could not reach the verification service. Please try again.");
+    } finally {
+      setDomainActionBusy(false);
     }
   }
 
@@ -255,17 +324,61 @@ export default function Home() {
               <div className="panel-title">
                 <div>
                   <h3>Your domains</h3>
-                  <p>Domains saved to your authenticated CyberSentryAI workspace</p>
+                  <p>Connect a domain and prove ownership with a DNS TXT record</p>
                 </div>
                 <button onClick={refreshDomains} disabled={domainLoading}>
                   {domainLoading ? "Loading..." : "↻ Refresh"}
                 </button>
               </div>
+
+              {!userEmail ? (
+                <div className="domain-connect">
+                  <p className="domain-empty">Sign in to connect and manage domains in your workspace.</p>
+                  <a className="auth-nav-button" href="/login">Sign in / Create account</a>
+                </div>
+              ) : (
+                <div className="domain-connect">
+                  <label className="domain-input-label" htmlFor="domain-connect-input">Domain name</label>
+                  <div className="domain-connect-form">
+                    <input
+                      id="domain-connect-input"
+                      value={domainInput}
+                      onChange={(event) => setDomainInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") void createDomainChallenge();
+                      }}
+                      placeholder="example.com"
+                      autoComplete="url"
+                    />
+                    <button onClick={createDomainChallenge} disabled={domainActionBusy || !domainInput.trim()}>
+                      {domainActionBusy ? "Please wait..." : "Connect domain"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {domainActionMessage && <p className="domain-action-message" role="status">{domainActionMessage}</p>}
+              {challenge && (
+                <div className="dns-challenge">
+                  <h4>DNS ownership challenge · {challenge.domain}</h4>
+                  <p>Create this TXT record with your DNS provider:</p>
+                  <dl>
+                    <div><dt>Type</dt><dd>TXT</dd></div>
+                    <div><dt>Name / Host</dt><dd>{challenge.recordName}</dd></div>
+                    <div><dt>Value</dt><dd className="dns-value">{challenge.recordValue}</dd></div>
+                    <div><dt>Expires</dt><dd>{new Date(challenge.expiresAt).toLocaleString()}</dd></div>
+                  </dl>
+                  <button onClick={verifyDomainOwnership} disabled={domainActionBusy}>
+                    {domainActionBusy ? "Checking DNS..." : "Verify ownership"}
+                  </button>
+                </div>
+              )}
+
               {domainError && <p className="domain-error" role="alert">{domainError}</p>}
               {domainLoading ? (
                 <p className="domain-empty">Loading your domains...</p>
               ) : domains.length === 0 ? (
-                <p className="domain-empty">No domains saved yet. Sign in and use the domain connection workflow when it is enabled.</p>
+                <p className="domain-empty">No domains saved yet.</p>
               ) : (
                 <div className="domain-list">
                   {domains.map((domain) => (
@@ -281,7 +394,7 @@ export default function Home() {
                   ))}
                 </div>
               )}
-              <p className="domain-note">DNS ownership verification is separate from scanning. No website scans are running.</p>
+              <p className="domain-note">DNS ownership verification only. This does not scan the website or test for vulnerabilities.</p>
             </section>
           )}
 
