@@ -2,9 +2,18 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { resolveTxt } from "node:dns/promises";
 import { NextResponse } from "next/server";
 import { validatePublicDomain } from "@/lib/security/domain-validation";
-import { getAccessToken, getAuthenticatedUser, supabaseUserRequest } from "@/lib/supabase-rest";
+import {
+  getAccessToken,
+  getAuthenticatedUser,
+  isSameOriginRequest,
+  supabaseUserRequest,
+} from "@/lib/supabase-rest";
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-origin request rejected." }, { status: 403 });
+  }
+
   const accessToken = await getAccessToken();
   if (!accessToken) return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
   try {
