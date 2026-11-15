@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const navigation = [
   { name: "Overview", icon: "◫" },
+  { name: "Domain Management", icon: "◎" },
   { name: "Website Scanner", icon: "⌕" },
   { name: "Threat Intelligence", icon: "◈" },
   { name: "Vulnerabilities", icon: "⚠" },
@@ -22,6 +23,65 @@ export default function Home() {
   const [url, setUrl] = useState("");
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [domains, setDomains] = useState<Array<{ id: string; domain: string; verificationStatus: string; createdAt: string }>>([]);
+  const [domainLoading, setDomainLoading] = useState(true);
+  const [domainError, setDomainError] = useState("");
+
+  async function refreshDomains() {
+    setDomainLoading(true);
+    setDomainError("");
+    try {
+      const response = await fetch("/api/domains", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) {
+        setDomainError(result.error || "Could not load domains.");
+        setDomains([]);
+        return;
+      }
+      setDomains(result.domains || []);
+    } catch {
+      setDomainError("Could not reach the domain service.");
+    } finally {
+      setDomainLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth/session", { cache: "no-store" });
+        if (!response.ok) {
+          if (mounted) {
+            setUserEmail(null);
+            setDomainLoading(false);
+          }
+          return;
+        }
+        const session = await response.json();
+        if (mounted) setUserEmail(session.user?.email ?? null);
+        if (mounted) await refreshDomains();
+      } catch {
+        if (mounted) {
+          setUserEmail(null);
+          setDomainLoading(false);
+        }
+      }
+    }
+    void loadSession();
+    return () => { mounted = false; };
+  }, []);
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      setUserEmail(null);
+      setDomains([]);
+      setActive("Overview");
+    }
+  }
 
   async function validateDomain() {
     if (!url.trim()) {
@@ -127,7 +187,7 @@ export default function Home() {
           </div>
 
           <div className="topbar-right">
-            <span className="environment">
+            {userEmail ? (\n              <button className="auth-nav-button" onClick={handleLogout}>Sign out</button>\n            ) : (\n              <a className="auth-nav-button" href="/login">Sign in</a>\n            )}\n            <span className="environment">
               <span className="status-dot" />
               DEVELOPMENT
             </span>
@@ -139,7 +199,7 @@ export default function Home() {
               ♧
               <i />
             </button>
-            <div className="top-avatar">F</div>
+            <div className="top-avatar">{userEmail ? userEmail.charAt(0).toUpperCase() : "?"}</div>
           </div>
         </header>
 
@@ -172,7 +232,7 @@ export default function Home() {
             </button>
           </div>
 
-          {active !== "Overview" && (
+          {active !== "Overview" && active !== "Domain Management" && (
             <div className="section-notice">
               <strong>{active}</strong>
               <p>
@@ -183,6 +243,41 @@ export default function Home() {
                 Return to overview →
               </button>
             </div>
+          )}
+
+          {active === "Domain Management" && (
+            <section className="content-panel domain-management">
+              <div className="panel-title">
+                <div>
+                  <h3>Your domains</h3>
+                  <p>Domains saved to your authenticated CyberSentryAI workspace</p>
+                </div>
+                <button onClick={refreshDomains} disabled={domainLoading}>
+                  {domainLoading ? "Loading..." : "↻ Refresh"}
+                </button>
+              </div>
+              {domainError && <p className="domain-error" role="alert">{domainError}</p>}
+              {domainLoading ? (
+                <p className="domain-empty">Loading your domains...</p>
+              ) : domains.length === 0 ? (
+                <p className="domain-empty">No domains saved yet. Sign in and use the domain connection workflow when it is enabled.</p>
+              ) : (
+                <div className="domain-list">
+                  {domains.map((domain) => (
+                    <div className="domain-row" key={domain.id}>
+                      <div>
+                        <strong>{domain.domain}</strong>
+                        <small>Added {new Date(domain.createdAt).toLocaleDateString()}</small>
+                      </div>
+                      <span className={domain.verificationStatus === "verified" ? "domain-status verified" : "domain-status pending"}>
+                        {domain.verificationStatus}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="domain-note">DNS ownership verification is separate from scanning. No website scans are running.</p>
+            </section>
           )}
 
           <div className="stats-grid">
