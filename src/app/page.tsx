@@ -248,7 +248,7 @@ export default function Home() {
               </div>
               <button
                 className="scan-button"
-                onClick={runDemoScan}
+                onClick={validateDomain}
                 disabled={scanning}
               >
                 {scanning ? "Validating..." : "Validate domain →"}
