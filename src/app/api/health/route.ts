@@ -26,18 +26,17 @@ export async function GET() {
         {
           ok: true,
           checkedAt: new Date().toISOString(),
-          supabase: { status: "unreachable" },
+          supabase: { status: "invalid_url_protocol" },
         },
         { headers: noStoreHeaders },
       );
     }
 
+    // A Supabase publishable key belongs in the apikey header. It is not a
+    // user access token and must not be sent as a Bearer Authorization token.
     const response = await fetch(new URL("/rest/v1/", baseUrl), {
       method: "GET",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-      },
+      headers: { apikey: supabaseKey },
       cache: "no-store",
       signal: AbortSignal.timeout(5000),
     });
@@ -46,16 +45,21 @@ export async function GET() {
       {
         ok: true,
         checkedAt: new Date().toISOString(),
-        supabase: { status: response.ok ? "reachable" : "unreachable" },
+        supabase: response.ok
+          ? { status: "reachable" }
+          : { status: "http_error", httpStatus: response.status },
       },
       { headers: noStoreHeaders },
     );
-  } catch {
+  } catch (error) {
+    const errorName = error instanceof Error ? error.name : "UnknownError";
     return NextResponse.json(
       {
         ok: true,
         checkedAt: new Date().toISOString(),
-        supabase: { status: "unreachable" },
+        supabase: {
+          status: errorName === "TimeoutError" ? "timeout" : "connection_error",
+        },
       },
       { headers: noStoreHeaders },
     );
