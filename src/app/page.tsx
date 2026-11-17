@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+type ScanFinding = { code: string; severity: string; title: string; description: string; recommendation: string; evidence?: string };
+type ScanRecord = { id: string; domain: string; score: number; status: string; findings: ScanFinding[]; summary: Record<string, number>; http_status: number | null; tls_protocol: string | null; created_at: string };
+
 const navigation = [
   { name: "Overview", icon: "◫" },
   { name: "Domain Management", icon: "◎" },
@@ -14,9 +17,12 @@ const navigation = [
 
 export default function Home() {
   const [active, setActive] = useState("Overview");
-  const [url, setUrl] = useState("");
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
+  const [selectedScanDomain, setSelectedScanDomain] = useState("");
+  const [scans, setScans] = useState<ScanRecord[]>([]);
+  const [scanResult, setScanResult] = useState<ScanRecord | null>(null);
+  const [scanHistoryError, setScanHistoryError] = useState("");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [domains, setDomains] = useState<Array<{ id: string; domain: string; verificationStatus: string; createdAt: string }>>([]);
   const [domainLoading, setDomainLoading] = useState(true);
@@ -33,6 +39,50 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [refreshMessage, setRefreshMessage] = useState("");
+
+  async function refreshScans() {
+    setScanHistoryError("");
+    try {
+      const response = await fetch("/api/scans", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) {
+        setScanHistoryError(result.error || "Could not load scan history.");
+        return;
+      }
+      setScans(result.scans || []);
+      if (result.scans?.[0]) setScanResult(result.scans[0]);
+    } catch {
+      setScanHistoryError("Could not reach the scan history service.");
+    }
+  }
+
+  async function startSecurityScan() {
+    if (!selectedScanDomain) {
+      setScanMessage("Verify a domain in Domain Management before starting a security scan.");
+      return;
+    }
+    setScanning(true);
+    setScanMessage("Running passive HTTPS security checks...");
+    try {
+      const response = await fetch("/api/scans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: selectedScanDomain }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setScanMessage(result.error || "Security scan could not be completed.");
+        return;
+      }
+      setScanResult(result.scan);
+      setScanMessage("Security assessment completed and saved to your reports.");
+      await refreshScans();
+    } catch {
+      setScanMessage("Could not reach the security scan service. Please try again.");
+    } finally {
+      setScanning(false);
+    }
+  }
 
   async function refreshDashboard() {
     if (refreshing) return;
@@ -67,6 +117,8 @@ export default function Home() {
         return;
       }
       setDomains(result.domains || []);
+      const verifiedDomain = (result.domains || []).find((domain: { verificationStatus: string }) => domain.verificationStatus === "verified");
+      if (verifiedDomain) setSelectedScanDomain((current) => current || verifiedDomain.domain);
     } catch {
       setDomainError("Could not reach the domain service.");
     } finally {
@@ -148,7 +200,10 @@ export default function Home() {
         }
         const session = await response.json();
         if (mounted) setUserEmail(session.user?.email ?? null);
-        if (mounted) await refreshDomains();
+        if (mounted) {
+          await refreshDomains();
+          await refreshScans();
+        }
       } catch {
         if (mounted) {
           setUserEmail(null);
@@ -166,41 +221,12 @@ export default function Home() {
     } finally {
       setUserEmail(null);
       setDomains([]);
+      setScans([]);
+      setScanResult(null);
       setActive("Overview");
     }
   }
 
-  async function validateDomain() {
-    if (!url.trim()) {
-      setScanMessage("Please enter a website domain first.");
-      return;
-    }
-
-    setScanning(true);
-    setScanMessage("Validating domain format...");
-
-    try {
-      const response = await fetch("/api/domains/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: url }),
-      });
-      const result = await response.json();
-
-      if (!response.ok || !result.ok) {
-        setScanMessage(result.error || "Domain validation failed.");
-        return;
-      }
-
-      setScanMessage(
-        `Domain format accepted: ${result.normalizedUrl}. Ownership verification and security scanning are not available yet.`
-      );
-    } catch {
-      setScanMessage("Could not reach the validation API. Please try again.");
-    } finally {
-      setScanning(false);
-    }
-  }
 
   return (
     <main className="app-shell">
@@ -330,7 +356,7 @@ export default function Home() {
             </div>
           </div>
 
-          {active !== "Overview" && active !== "Domain Management" && (
+          {active !== "Overview" && active !== "Domain Management" && active !== "Website Scanner" && active !== "Security Reports" && active !== "Vulnerabilities" && (
             <div className="section-notice">
               <strong>{active}</strong>
               <p>
@@ -428,8 +454,8 @@ export default function Home() {
                 <span>SECURITY SCORE</span>
                 <span className="stat-icon blue">◈</span>
               </div>
-              <div className="stat-value">--<small>/100</small></div>
-              <div className="stat-footer">Awaiting real security assessment</div>
+              <div className="stat-value">{scans[0] ? scans[0].score : "--"}<small>/100</small></div>
+              <div className="stat-footer">{scans[0] ? `Latest assessment · ${scans[0].domain}` : "Awaiting first verified scan"}</div>
             </article>
 
             <article className="stat-card">
@@ -437,8 +463,8 @@ export default function Home() {
                 <span>MONITORED WEBSITES</span>
                 <span className="stat-icon cyan">◎</span>
               </div>
-              <div className="stat-value">00</div>
-              <div className="stat-footer">No websites connected</div>
+              <div className="stat-value">{domains.filter((domain) => domain.verificationStatus === "verified").length.toString().padStart(2, "0")}</div>
+              <div className="stat-footer">Verified websites</div>
             </article>
 
             <article className="stat-card">
@@ -446,8 +472,8 @@ export default function Home() {
                 <span>VULNERABILITIES</span>
                 <span className="stat-icon orange">⚠</span>
               </div>
-              <div className="stat-value">--</div>
-              <div className="stat-footer">No real scan data available</div>
+              <div className="stat-value">{scans[0]?.findings?.length ?? "--"}</div>
+              <div className="stat-footer">{scans[0] ? "Findings in latest scan" : "No completed scans yet"}</div>
             </article>
 
             <article className="stat-card">
@@ -460,50 +486,113 @@ export default function Home() {
             </article>
           </div>
 
-          <section className="scanner-panel">
-            <div className="panel-heading">
-              <div>
-                <div className="eyebrow">WEBSITE SECURITY</div>
-                <h3>Website scanner</h3>
-                <p>Check whether a domain is valid before connecting it.</p>
+          {(active === "Overview" || active === "Website Scanner") && (
+            <section className="scanner-panel">
+              <div className="panel-heading">
+                <div>
+                  <div className="eyebrow">WEBSITE SECURITY</div>
+                  <h3>Website security assessment</h3>
+                  <p>Run passive HTTPS configuration checks on a domain whose ownership you have verified.</p>
+                </div>
+                <div className="scanner-symbol">⌕</div>
               </div>
-              <div className="scanner-symbol">⌕</div>
-            </div>
 
-            <div className="scan-form">
-              <div className="url-input-wrap">
-                <span>↗</span>
-                <input
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") validateDomain();
-                  }}
-                  placeholder="Enter a domain (e.g. example.com)"
-                  aria-label="Website URL"
-                />
+              <div className="scan-form">
+                <div className="url-input-wrap">
+                  <span>◎</span>
+                  <select
+                    value={selectedScanDomain}
+                    onChange={(event) => setSelectedScanDomain(event.target.value)}
+                    aria-label="Verified domain to scan"
+                    disabled={!domains.some((domain) => domain.verificationStatus === "verified")}
+                  >
+                    <option value="">Select a verified domain</option>
+                    {domains.filter((domain) => domain.verificationStatus === "verified").map((domain) => (
+                      <option key={domain.id} value={domain.domain}>{domain.domain}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  className="scan-button"
+                  onClick={startSecurityScan}
+                  disabled={scanning || !selectedScanDomain}
+                >
+                  {scanning ? "Assessing website..." : "Run security assessment →"}
+                </button>
               </div>
-              <button
-                className="scan-button"
-                onClick={validateDomain}
-                disabled={scanning}
-              >
-                {scanning ? "Validating..." : "Validate domain →"}
-              </button>
-            </div>
 
-            {scanMessage && (
-              <div className="scan-message" role="status">
-                {scanMessage}
+              {scanMessage && <div className="scan-message" role="status">{scanMessage}</div>}
+              {!domains.some((domain) => domain.verificationStatus === "verified") && (
+                <div className="scan-disclaimer">
+                  <span>ⓘ</span>
+                  Verify ownership of your domain in Domain Management to enable scanning.
+                  <button type="button" onClick={() => setActive("Domain Management")}>Manage domains →</button>
+                </div>
+              )}
+              <div className="scan-disclaimer">
+                <span>ⓘ</span>
+                Passive HTTPS checks only: security headers, TLS protocol and certificate expiry. No exploitation, password testing, crawling or intrusive requests.
               </div>
-            )}
 
-            <div className="scan-disclaimer">
-              <span>ⓘ</span>
-              Domain validation only. No website is contacted, saved, ownership-verified,
-              or scanned.
-            </div>
-          </section>
+              {scanResult && (
+                <div className="scan-result">
+                  <div className="scan-result-heading">
+                    <div>
+                      <span className="eyebrow">LATEST ASSESSMENT</span>
+                      <h4>{scanResult.domain}</h4>
+                      <p>Checked {new Date(scanResult.created_at).toLocaleString()} · HTTP {scanResult.http_status ?? "—"} · {scanResult.tls_protocol ?? "TLS details unavailable"}</p>
+                    </div>
+                    <div className="scan-score"><strong>{scanResult.score}</strong><span>/100</span></div>
+                  </div>
+                  <div className="finding-summary">
+                    {(["critical", "high", "medium", "low", "info"] as const).map((severity) => (
+                      <span key={severity} className={`finding-count ${severity}`}>
+                        {scanResult.summary?.[severity] ?? 0} {severity}
+                      </span>
+                    ))}
+                  </div>
+                  {scanResult.findings?.length ? (
+                    <div className="finding-list">
+                      {scanResult.findings.map((finding) => (
+                        <article className="finding-card" key={finding.code}>
+                          <div><span className={`severity ${finding.severity}`}>{finding.severity}</span><strong>{finding.title}</strong></div>
+                          <p>{finding.description}</p>
+                          <small>Recommended action: {finding.recommendation}</small>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="domain-empty">No findings were detected by the checks performed. This is not a guarantee that the website is vulnerability-free.</p>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
+          {active === "Security Reports" && (
+            <section className="content-panel report-panel">
+              <div className="panel-title"><div><h3>Security assessment reports</h3><p>Saved reports from your verified domains</p></div><button onClick={refreshScans}>↻ Refresh</button></div>
+              {scanHistoryError && <p className="domain-error" role="alert">{scanHistoryError}</p>}
+              {scans.length === 0 ? <p className="domain-empty">No saved reports yet. Run a security assessment on a verified domain to create your first report.</p> : (
+                <div className="report-list">{scans.map((scan) => (
+                  <button className="report-row" key={scan.id} onClick={() => { setScanResult(scan); setSelectedScanDomain(scan.domain); setActive("Website Scanner"); }}>
+                    <span><strong>{scan.domain}</strong><small>{new Date(scan.created_at).toLocaleString()} · {scan.findings?.length ?? 0} findings</small></span>
+                    <span className="report-score">{scan.score}/100</span>
+                    <span>View →</span>
+                  </button>
+                ))}</div>
+              )}
+            </section>
+          )}
+
+          {active === "Vulnerabilities" && (
+            <section className="content-panel report-panel">
+              <div className="panel-title"><div><h3>Vulnerability findings</h3><p>Findings from your latest completed assessment</p></div><button onClick={() => setActive("Website Scanner")}>Run assessment →</button></div>
+              {scanResult?.findings?.length ? <div className="finding-list">{scanResult.findings.map((finding) => (
+                <article className="finding-card" key={finding.code}><div><span className={`severity ${finding.severity}`}>{finding.severity}</span><strong>{finding.title}</strong></div><p>{finding.description}</p><small>Recommended action: {finding.recommendation}</small></article>
+              ))}</div> : <p className="domain-empty">No findings are available yet. Complete a scan of a verified domain to populate this workspace.</p>}
+            </section>
+          )}
 
           <div className="lower-grid">
             <section className="content-panel">
