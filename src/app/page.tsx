@@ -11,12 +11,6 @@ const navigation = [
   { name: "Security Reports", icon: "▤" },
 ];
 
-const events = [
-  { type: "Critical", title: "SQL injection exposure", target: "example.test", time: "2 min ago" },
-  { type: "High", title: "Missing security headers", target: "demo.test", time: "18 min ago" },
-  { type: "Medium", title: "Outdated TLS configuration", target: "sample.test", time: "1 hour ago" },
-  { type: "Low", title: "Information disclosure review", target: "portal.test", time: "3 hours ago" },
-];
 
 export default function Home() {
   const [active, setActive] = useState("Overview");
@@ -36,6 +30,30 @@ export default function Home() {
   } | null>(null);
   const [domainActionBusy, setDomainActionBusy] = useState(false);
   const [domainActionMessage, setDomainActionMessage] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [refreshMessage, setRefreshMessage] = useState("");
+
+  async function refreshDashboard() {
+    if (refreshing) return;
+    setRefreshing(true);
+    setRefreshMessage("");
+    try {
+      const response = await fetch("/api/health", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Health check failed.");
+      setLastUpdated(new Date().toLocaleTimeString());
+      setRefreshMessage(
+        result.supabase?.status === "reachable"
+          ? "Workspace checked. Database API is reachable."
+          : "Workspace checked. Database service is not configured or could not be reached."
+      );
+    } catch {
+      setRefreshMessage("Unable to refresh right now. Check your connection and try again.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function refreshDomains() {
     setDomainLoading(true);
@@ -295,15 +313,21 @@ export default function Home() {
               </p>
             </div>
 
-            <button
-              className="secondary-button"
-              onClick={() => {
-                setActive("Overview");
-                setScanMessage("");
-              }}
-            >
-              ↻ Refresh dashboard
-            </button>
+            <div className="refresh-control">
+              <button
+                className="secondary-button"
+                onClick={refreshDashboard}
+                disabled={refreshing}
+                aria-busy={refreshing}
+              >
+                <span className={refreshing ? "refresh-spinner" : ""}>↻</span>
+                {refreshing ? "Checking services..." : "Refresh dashboard"}
+              </button>
+              <span className="refresh-meta">
+                {lastUpdated ? `Last checked at ${lastUpdated}` : "Live service check"}
+              </span>
+              {refreshMessage && <span className="refresh-feedback" role="status">{refreshMessage}</span>}
+            </div>
           </div>
 
           {active !== "Overview" && active !== "Domain Management" && (
@@ -486,32 +510,17 @@ export default function Home() {
               <div className="panel-title">
                 <div>
                   <h3>Security activity</h3>
-                  <p>Illustrative events for the dashboard preview</p>
+                  <p>Verified findings from completed security scans</p>
                 </div>
                 <button onClick={() => setActive("Security Reports")}>
-                  View all →
+                  View reports →
                 </button>
               </div>
 
-              <div className="event-list">
-                {events.map((event, index) => (
-                  <div className="event-row" key={index}>
-                    <span className={`event-indicator ${event.type.toLowerCase()}`}>
-                      !
-                    </span>
-                    <div className="event-info">
-                      <strong>{event.title}</strong>
-                      <small>{event.target}</small>
-                    </div>
-                    <span className={`severity ${event.type.toLowerCase()}`}>
-                      {event.type}
-                    </span>
-                    <time>{event.time}</time>
-                  </div>
-                ))}
-              </div>
-              <div className="demo-label">
-                SAMPLE DATA · NOT LIVE SECURITY FINDINGS
+              <div className="empty-activity">
+                <span className="empty-activity-icon">✓</span>
+                <strong>No verified security activity yet</strong>
+                <p>Completed scans and verified findings will appear here. Sample events are never presented as real security alerts.</p>
               </div>
             </section>
 
