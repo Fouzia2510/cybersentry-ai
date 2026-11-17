@@ -32,8 +32,7 @@ export async function GET() {
       );
     }
 
-    // Probe the same Supabase Auth service used by sign-in. This avoids
-    // treating a PostgREST root response as proof that authentication works.
+    // Probe the same Supabase Auth service used by sign-in.
     const response = await fetch(new URL("/auth/v1/health", baseUrl), {
       method: "GET",
       headers: { apikey: supabaseKey },
@@ -53,12 +52,21 @@ export async function GET() {
     );
   } catch (error) {
     const errorName = error instanceof Error ? error.name : "UnknownError";
+    const cause = error instanceof Error ? error.cause : undefined;
+    const causeCode =
+      typeof cause === "object" && cause !== null && "code" in cause &&
+      typeof cause.code === "string" && /^[A-Z0-9_]+$/.test(cause.code)
+        ? cause.code
+        : undefined;
+
     return NextResponse.json(
       {
         ok: true,
         checkedAt: new Date().toISOString(),
         supabase: {
           status: errorName === "TimeoutError" ? "timeout" : "connection_error",
+          errorName,
+          ...(causeCode ? { causeCode } : {}),
         },
       },
       { headers: noStoreHeaders },
