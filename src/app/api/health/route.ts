@@ -32,13 +32,13 @@ export async function GET() {
       );
     }
 
-    // A Supabase publishable key belongs in the apikey header. It is not a
-    // user access token and must not be sent as a Bearer Authorization token.
-    const response = await fetch(new URL("/rest/v1/", baseUrl), {
+    // Probe the same Supabase Auth service used by sign-in. This avoids
+    // treating a PostgREST root response as proof that authentication works.
+    const response = await fetch(new URL("/auth/v1/health", baseUrl), {
       method: "GET",
       headers: { apikey: supabaseKey },
       cache: "no-store",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(8000),
     });
 
     return NextResponse.json(
@@ -47,7 +47,7 @@ export async function GET() {
         checkedAt: new Date().toISOString(),
         supabase: response.ok
           ? { status: "reachable" }
-          : { status: "http_error", httpStatus: response.status },
+          : { status: "auth_http_error", httpStatus: response.status },
       },
       { headers: noStoreHeaders },
     );
