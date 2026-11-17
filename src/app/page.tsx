@@ -22,6 +22,32 @@ export default function Home() {
   const [url, setUrl] = useState("");
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [refreshMessage, setRefreshMessage] = useState("");
+
+  async function refreshDashboard() {
+    if (refreshing) return;
+    setRefreshing(true);
+    setRefreshMessage("");
+    try {
+      const response = await fetch("/api/health", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Health check failed.");
+      setLastUpdated(new Date().toLocaleTimeString());
+      setRefreshMessage(
+        result.supabase?.status === "reachable"
+          ? "Dashboard checked successfully. Supabase API is reachable."
+          : "Dashboard checked. Supabase is not configured or could not be reached."
+      );
+      setActive("Overview");
+      setScanMessage("");
+    } catch {
+      setRefreshMessage("Unable to refresh right now. Check your connection and try again.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function validateDomain() {
     if (!url.trim()) {
@@ -161,15 +187,21 @@ export default function Home() {
               </p>
             </div>
 
-            <button
-              className="secondary-button"
-              onClick={() => {
-                setActive("Overview");
-                setScanMessage("");
-              }}
-            >
-              ↻ Refresh dashboard
-            </button>
+            <div className="refresh-control">
+              <button
+                className="secondary-button"
+                onClick={refreshDashboard}
+                disabled={refreshing}
+                aria-busy={refreshing}
+              >
+                <span className={refreshing ? "refresh-spinner" : ""}>↻</span>
+                {refreshing ? "Checking services..." : "Refresh dashboard"}
+              </button>
+              <span className="refresh-meta">
+                {lastUpdated ? `Last checked at ${lastUpdated}` : "Live service check"}
+              </span>
+              {refreshMessage && <span className="refresh-feedback" role="status">{refreshMessage}</span>}
+            </div>
           </div>
 
           {active !== "Overview" && (
@@ -273,34 +305,19 @@ export default function Home() {
               <div className="panel-title">
                 <div>
                   <h3>Security activity</h3>
-                  <p>Illustrative events for the dashboard preview</p>
+                  <p>Verified activity from connected security services</p>
                 </div>
                 <button onClick={() => setActive("Security Reports")}>
                   View all →
                 </button>
               </div>
 
-              <div className="event-list">
-                {events.map((event, index) => (
-                  <div className="event-row" key={index}>
-                    <span className={`event-indicator ${event.type.toLowerCase()}`}>
-                      !
-                    </span>
-                    <div className="event-info">
-                      <strong>{event.title}</strong>
-                      <small>{event.target}</small>
-                    </div>
-                    <span className={`severity ${event.type.toLowerCase()}`}>
-                      {event.type}
-                    </span>
-                    <time>{event.time}</time>
-                  </div>
-                ))}
+              <div className="empty-activity">
+                <span className="empty-activity-icon">✓</span>
+                <strong>No verified security activity yet</strong>
+                <p>Connect and scan an authorized website to see real findings here. Sample events are intentionally hidden.</p>
               </div>
-              <div className="demo-label">
-                SAMPLE DATA · NOT LIVE SECURITY FINDINGS
-              </div>
-            </section>
+                        </section>
 
             <section className="content-panel intelligence-panel">
               <div className="panel-title">
