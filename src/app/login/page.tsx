@@ -127,7 +127,6 @@ export default function LoginPage() {
           Your session is protected with httpOnly cookies. Domain ownership
           verification is separate from website scanning.
         </p>
-        <Link className="auth-back" href="/">← Back to dashboard</Link>
       </section>
     </main>
   );
