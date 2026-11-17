@@ -19,9 +19,10 @@ export async function GET() {
     );
   }
 
+  let targetHost: string | undefined;
   try {
     const baseUrl = new URL(supabaseUrl);
-    const targetHost = baseUrl.hostname;
+    targetHost = baseUrl.hostname;
     if (baseUrl.protocol !== "https:") {
       return NextResponse.json(
         {
@@ -67,7 +68,7 @@ export async function GET() {
         supabase: {
           status: errorName === "TimeoutError" ? "timeout" : "connection_error",
           errorName,
-          targetHost,
+          ...(targetHost ? { targetHost } : {}),
           ...(causeCode ? { causeCode } : {}),
         },
       },
