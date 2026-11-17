@@ -60,12 +60,12 @@ export default function LoginPage() {
   return (
     <main className="auth-shell">
       <section className="auth-card" aria-labelledby="auth-title">
-        <Link className="auth-brand" href="/login" aria-label="CyberSentryAI sign in">
+        <Link className="auth-brand" href="/login" aria-label="CyberSentryAI login">
           <span className="auth-brand-icon">C</span>
           <span>CyberSentry<span>AI</span></span>
         </Link>
         <div className="auth-eyebrow">SECURITY INTELLIGENCE PLATFORM</div>
-        <h1 id="auth-title">{mode === "login" ? "Sign in to your workspace" : "Create your workspace"}</h1>
+        <h1 id="auth-title">{mode === "login" ? "Login to your workspace" : "Create your workspace"}</h1>
         <p className="auth-description">
           {mode === "login"
             ? "Access your security operations, verified domains and assessment reports."
@@ -76,7 +76,7 @@ export default function LoginPage() {
           <button type="button" role="tab" id="signin-tab" aria-controls="auth-panel"
             aria-selected={mode === "login"} className={mode === "login" ? "selected" : ""}
             onClick={() => { setMode("login"); setError(""); setMessage(""); setConfirmPassword(""); }}>
-            Sign in
+            Login
           </button>
           <button type="button" role="tab" id="signup-tab" aria-controls="auth-panel"
             aria-selected={mode === "signup"} className={mode === "signup" ? "selected" : ""}
@@ -127,7 +127,7 @@ export default function LoginPage() {
           {message && <p className="auth-message" role="status">{message}</p>}
 
           <button className="auth-submit" type="submit" disabled={busy}>
-            {busy ? "Please wait..." : mode === "login" ? "Sign in to workspace" : "Create secure account"}
+            {busy ? "Please wait..." : mode === "login" ? "Login to workspace" : "Create secure account"}
           </button>
         </form>
 
