@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type ScanFinding = { code: string; severity: string; title: string; description: string; recommendation: string; evidence?: string };
 type ScanRecord = { id: string; domain: string; score: number; status: string; findings: ScanFinding[]; summary: Record<string, number>; http_status: number | null; tls_protocol: string | null; created_at: string };
@@ -16,7 +17,11 @@ const navigation = [
 
 
 export default function Home() {
+  const router = useRouter();
   const [active, setActive] = useState("Overview");
+  const [authChecking, setAuthChecking] = useState(true);
+  const [authError, setAuthError] = useState("");
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
   const [selectedScanDomain, setSelectedScanDomain] = useState("");
@@ -191,31 +196,37 @@ export default function Home() {
     async function loadSession() {
       try {
         const response = await fetch("/api/auth/session", { cache: "no-store" });
-        if (!response.ok) {
-          if (mounted) {
-            setUserEmail(null);
-            setDomainLoading(false);
-          }
+        if (response.status === 401) {
+          router.replace("/login?next=/");
           return;
         }
-        const session = await response.json();
-        if (mounted) setUserEmail(session.user?.email ?? null);
-        if (mounted) {
-          await refreshDomains();
-          await refreshScans();
+        if (!response.ok) {
+          throw new Error("We could not verify your workspace session. Please refresh and try again.");
         }
-      } catch {
+        const session = await response.json();
+        if (!session.authenticated || !session.user) {
+          router.replace("/login?next=/");
+          return;
+        }
+        if (mounted) setUserEmail(session.user.email ?? null);
         if (mounted) {
-          setUserEmail(null);
+          await Promise.all([refreshDomains(), refreshScans()]);
+          setAuthChecking(false);
+        }
+      } catch (error) {
+        if (mounted) {
+          setAuthError(error instanceof Error ? error.message : "Authentication service is unavailable.");
+          setAuthChecking(false);
           setDomainLoading(false);
         }
       }
     }
     void loadSession();
     return () => { mounted = false; };
-  }, []);
+  }, [router]);
 
   async function handleLogout() {
+    setProfileMenuOpen(false);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {
@@ -223,10 +234,36 @@ export default function Home() {
       setDomains([]);
       setScans([]);
       setScanResult(null);
-      setActive("Overview");
+      router.replace("/login");
+      router.refresh();
     }
   }
 
+  if (authChecking) {
+    return (
+      <main className="auth-checking-shell" aria-live="polite">
+        <div className="auth-checking-card">
+          <span className="auth-checking-mark">C</span>
+          <strong>Securing your workspace</strong>
+          <span>Verifying your administrator session...</span>
+        </div>
+      </main>
+    );
+  }
+
+  if (authError) {
+    return (
+      <main className="auth-checking-shell">
+        <div className="auth-checking-card">
+          <span className="auth-checking-mark">!</span>
+          <strong>Workspace sign-in could not be verified</strong>
+          <span>{authError}</span>
+          <button className="auth-submit" onClick={() => window.location.reload()}>Try again</button>
+          <a className="auth-back" href="/login">Go to sign in</a>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="app-shell">
@@ -255,9 +292,7 @@ export default function Home() {
             >
               <span className="nav-icon">{item.icon}</span>
               {item.name}
-              {item.name === "Vulnerabilities" && (
-                <span className="nav-count">4</span>
-              )}
+
             </button>
           ))}
         </nav>
@@ -281,12 +316,11 @@ export default function Home() {
           </div>
 
           <div className="profile">
-            <div className="avatar">F</div>
-            <div>
-              <strong>Workspace Owner</strong>
-              <small>Administrator</small>
+            <div className="avatar">{userEmail?.charAt(0).toUpperCase() || "A"}</div>
+            <div className="profile-copy">
+              <strong>Workspace account</strong>
+              <small>{userEmail}</small>
             </div>
-            <span className="profile-menu">•••</span>
           </div>
         </div>
       </aside>
@@ -300,24 +334,35 @@ export default function Home() {
           </div>
 
           <div className="topbar-right">
-            {userEmail ? (
-              <button className="auth-nav-button" onClick={handleLogout}>Sign out</button>
-            ) : (
-              <a className="auth-nav-button" href="/login">Sign in</a>
-            )}
             <span className="environment">
               <span className="status-dot" />
               DEVELOPMENT
             </span>
-            <button
-              className="notification-button"
-              aria-label="Notifications"
-              onClick={() => setActive("Security Reports")}
-            >
-              ♧
-              <i />
-            </button>
-            <div className="top-avatar">{userEmail ? userEmail.charAt(0).toUpperCase() : "?"}</div>
+            <div className="account-menu-wrap">
+              <button
+                className="top-avatar account-menu-trigger"
+                type="button"
+                aria-label="Open account menu"
+                aria-haspopup="menu"
+                aria-expanded={profileMenuOpen}
+                onClick={() => setProfileMenuOpen((open) => !open)}
+              >
+                {userEmail?.charAt(0).toUpperCase() || "A"}
+                <span className="account-menu-caret">▾</span>
+              </button>
+              {profileMenuOpen && (
+                <div className="account-menu" role="menu" aria-label="Account menu">
+                  <div className="account-menu-heading">
+                    <strong>Workspace account</strong>
+                    <span>{userEmail}</span>
+                    <small><i /> Signed in</small>
+                  </div>
+                  <button type="button" role="menuitem" onClick={handleLogout}>
+                    <span>↪</span> Sign out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
