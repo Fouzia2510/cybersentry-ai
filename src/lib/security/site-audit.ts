@@ -1,6 +1,5 @@
 import { lookup } from "node:dns/promises";
 import https from "node:https";
-import type { LookupFunction } from "node:dns";
 import type { TLSSocket } from "node:tls";
 
 export type FindingSeverity = "critical" | "high" | "medium" | "low" | "info";
@@ -53,7 +52,7 @@ function requestSite(hostname: string, address: string, method: "HEAD" | "GET"):
   return new Promise((resolve, reject) => {
     const pinnedLookup = ((_: string, __: unknown, callback: (error: NodeJS.ErrnoException | null, address: string, family: number) => void) => {
       callback(null, address, 4);
-    }) as LookupFunction;
+    }) as NonNullable<import("node:https").RequestOptions["lookup"]>;
 
     const agent = new https.Agent({ keepAlive: false, lookup: pinnedLookup });
     const request = https.request({
