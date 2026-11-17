@@ -23,7 +23,22 @@ export function isSameOriginRequest(request: Request) {
   if (!origin) return false;
 
   try {
-    return new URL(origin).origin === new URL(request.url).origin;
+    const receivedOrigin = new URL(origin);
+    if (receivedOrigin.username || receivedOrigin.password) return false;
+
+    // Netlify terminates TLS at its edge and may forward the request to the
+    // Next.js runtime with an internal URL. Compare against the public host
+    // and protocol supplied by the trusted hosting proxy instead.
+    const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+    const host = forwardedHost || request.headers.get("host");
+    const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const protocol = forwardedProto
+      ? `${forwardedProto.replace(/:$/, "")}:`
+      : new URL(request.url).protocol;
+
+    if (!host || !["http:", "https:"].includes(protocol)) return false;
+    return receivedOrigin.host.toLowerCase() === host.toLowerCase() &&
+      receivedOrigin.protocol === protocol;
   } catch {
     return false;
   }
