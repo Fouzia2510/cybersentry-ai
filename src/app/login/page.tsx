@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,10 +52,10 @@ export default function LoginPage() {
   return (
     <main className="auth-shell">
       <section className="auth-card">
-        <a className="auth-brand" href="/">
+        <Link className="auth-brand" href="/">
           <span className="auth-brand-icon">C</span>
           <span>CyberSentry<span>AI</span></span>
-        </a>
+        </Link>
         <div className="auth-eyebrow">SECURITY INTELLIGENCE PLATFORM</div>
         <h1>{mode === "login" ? "Welcome back" : "Create your workspace account"}</h1>
         <p className="auth-description">
@@ -126,7 +127,7 @@ export default function LoginPage() {
           Your session is protected with httpOnly cookies. Domain ownership
           verification is separate from website scanning.
         </p>
-        <a className="auth-back" href="/">← Back to dashboard</a>
+        <Link className="auth-back" href="/">← Back to dashboard</Link>
       </section>
     </main>
   );
