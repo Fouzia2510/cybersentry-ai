@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     if (!result || (Array.isArray(result) && result.length === 0)) {
       return NextResponse.json({ error: "Domain verification could not be persisted for this account." }, { status: 409 });
     }
-    return NextResponse.json({ ok: true, domain: validated.hostname, status: "verified", message: "Domain ownership verified. Website scanning is still a separate, not-yet-enabled feature." });
+    return NextResponse.json({ ok: true, domain: validated.hostname, status: "verified", message: "Domain ownership verified. You can now run passive HTTPS security checks from Website Scanner." });
   } catch {
     return NextResponse.json({ error: "DNS verification service failed. Please retry." }, { status: 503 });
   }
