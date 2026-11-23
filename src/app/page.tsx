@@ -41,9 +41,9 @@ export default function HomePage() {
       <section className="features-section" id="features">
         <div className="section-intro"><span>THE WORKSPACE</span><h2>Security essentials, in one place.</h2><p>Practical visibility into the website security signals that matter.</p></div>
         <div className="features">
-          <article className="feature-card"><div className="feature-icon">◎</div><span className="feature-index">01 / OWNERSHIP</span><h3>Domain ownership</h3><p>Connect domains and verify ownership through a DNS challenge before bringing them into your workspace.</p><div className="feature-line" /></article>
-          <article className="feature-card"><div className="feature-icon">⌕</div><span className="feature-index">02 / ASSESSMENT</span><h3>Passive security checks</h3><p>Review HTTPS, security headers and certificate details through defensive, non-invasive checks.</p><div className="feature-line" /></article>
-          <article className="feature-card"><div className="feature-icon">▤</div><span className="feature-index">03 / REPORTING</span><h3>Security reports</h3><p>Keep assessment findings and history together, with clear details to help guide next steps.</p><div className="feature-line" /></article>
+          <Link className="feature-card" href="/login?next=/dashboard"><div className="feature-icon">◎</div><span className="feature-index">01 / OWNERSHIP</span><h3>Domain ownership</h3><p>Connect domains and verify ownership through a DNS challenge before bringing them into your workspace.</p><span className="feature-link">Open workspace <b>→</b></span><div className="feature-line" /></Link>
+          <Link className="feature-card" href="/login?next=/dashboard"><div className="feature-icon">⌕</div><span className="feature-index">02 / ASSESSMENT</span><h3>Passive security checks</h3><p>Review HTTPS, security headers and certificate details through defensive, non-invasive checks.</p><span className="feature-link">Open workspace <b>→</b></span><div className="feature-line" /></Link>
+          <Link className="feature-card" href="/login?next=/dashboard"><div className="feature-icon">▤</div><span className="feature-index">03 / REPORTING</span><h3>Security reports</h3><p>Keep assessment findings and history together, with clear details to help guide next steps.</p><span className="feature-link">Open workspace <b>→</b></span><div className="feature-line" /></Link>
         </div>
       </section>
 
@@ -87,12 +87,12 @@ export default function HomePage() {
         .features-section{padding:82px 7vw 90px;background:linear-gradient(180deg,#091522,#0a1625);border-top:1px solid #8ed9ec12}
         .section-intro{text-align:center;margin:0 auto 37px}.section-intro>span{color:#5dcfe1;font-size:9px;font-weight:700;letter-spacing:2px}.section-intro h2{margin:13px 0 9px;color:#edf5ff;font-size:clamp(25px,3vw,34px);letter-spacing:-1px}.section-intro p{margin:0;color:#8fa3b8;font-size:12px;line-height:1.7}
         .features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px;max-width:1180px;margin:0 auto}
-        .feature-card{position:relative;min-height:225px;overflow:hidden;padding:25px;border:1px solid #243b50;border-radius:13px;background:linear-gradient(145deg,#102236,#0c1928);box-shadow:0 16px 40px #0209144d;transition:transform .2s,border-color .2s}
-        .feature-card:hover{transform:translateY(-4px);border-color:#3b8195}
+        .feature-card{position:relative;display:block;min-height:225px;overflow:hidden;padding:25px;border:1px solid #243b50;border-radius:13px;background:linear-gradient(145deg,#102236,#0c1928);box-shadow:0 16px 40px #0209144d;transition:transform .2s,border-color .2s;color:inherit;text-decoration:none}
+        .feature-card:hover,.feature-card:focus-visible{transform:translateY(-4px);border-color:#3b8195;outline:none;box-shadow:0 0 0 2px #48cfe455,0 16px 40px #0209144d}
         .feature-icon{width:43px;height:43px;display:grid;place-items:center;margin-bottom:21px;border:1px solid #34788c66;border-radius:11px;background:#123348;color:#68dce9;font-size:23px}
         .feature-index{color:#64869b;font-size:8px;font-weight:700;letter-spacing:1.4px}
         .feature-card h3{margin:10px 0;color:#e8f2fc;font-size:16px}.feature-card p{max-width:310px;margin:0;color:#91a5b9;font-size:11px;line-height:1.8}
-        .feature-line{position:absolute;bottom:0;left:25px;width:45px;height:2px;background:linear-gradient(90deg,#43d5e8,transparent)}
+        .feature-link{display:inline-flex;align-items:center;gap:9px;margin-top:15px;color:#69d9e8;font-size:10px;font-weight:700}.feature-link b{font-size:15px}.feature-line{position:absolute;bottom:0;left:25px;width:45px;height:2px;background:linear-gradient(90deg,#43d5e8,transparent)}
         footer{min-height:70px;padding:20px 7vw;display:flex;align-items:center;justify-content:space-between;gap:15px;border-top:1px solid #ffffff12;background:#07111f;color:#73889e;font-size:9px;letter-spacing:.6px}
         footer span:last-child{display:flex;align-items:center;gap:10px}footer i{width:3px;height:3px;border-radius:50%;background:#4e8194}
         @media(max-width:900px){.hero{min-height:600px;padding-top:90px;padding-bottom:100px;background-position:58% center}.hero-copy{width:75%}.hero-visual{right:-5%;opacity:.48;transform:translateY(-50%) scale(.85)}}
