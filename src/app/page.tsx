@@ -38,7 +38,7 @@ export default function HomePage() {
         <div className="hero-bottom-note"><span className="pulse-dot" /> BUILT FOR CLEARER SECURITY DECISIONS</div>
       </section>
 
-      <section className="features-section">
+      <section className="features-section" id="features">
         <div className="section-intro"><span>THE WORKSPACE</span><h2>Security essentials, in one place.</h2><p>Practical visibility into the website security signals that matter.</p></div>
         <div className="features">
           <article className="feature-card"><div className="feature-icon">◎</div><span className="feature-index">01 / OWNERSHIP</span><h3>Domain ownership</h3><p>Connect domains and verify ownership through a DNS challenge before bringing them into your workspace.</p><div className="feature-line" /></article>
