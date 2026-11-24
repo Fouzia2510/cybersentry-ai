@@ -462,7 +462,7 @@ export default function Home() {
             </div>
           </div>
 
-          {active !== "Overview" && active !== "Domain Management" && active !== "Website Scanner" && active !== "Security Reports" && active !== "Vulnerabilities" && (
+          {active !== "Overview" && active !== "Domain Management" && active !== "Website Scanner" && active !== "Security Reports" && active !== "Vulnerabilities" && active !== "Threat Intelligence" && (
             <div className="section-notice">
               <strong>{active}</strong>
               <p>
@@ -700,6 +700,22 @@ export default function Home() {
                   </button>
                 ))}</div>
               )}
+            </section>
+          )}
+
+          {active === "Threat Intelligence" && (
+            <section className="content-panel report-panel">
+              <div className="panel-title"><div><h3>Threat Intelligence</h3><p>Local intelligence derived only from your completed security assessments</p></div><button onClick={refreshScans}>↻ Refresh</button></div>
+              {scanHistoryError && <p className="domain-error" role="alert">{scanHistoryError}</p>}
+              {scans.length === 0 ? <p className="domain-empty">No assessment data yet. Run a passive scan to populate this intelligence workspace. External threat feeds are not connected.</p> : (() => {
+                const items = scans.flatMap((scan) => (scan.findings || []).map((finding) => ({ ...finding, domain: scan.domain, date: scan.created_at }))).sort((a,b)=>Date.parse(b.date)-Date.parse(a.date));
+                const counts = { critical: items.filter(i=>i.severity==="critical").length, high: items.filter(i=>i.severity==="high").length, medium: items.filter(i=>i.severity==="medium").length, low: items.filter(i=>i.severity==="low").length, info: items.filter(i=>i.severity==="info").length };
+                return <>
+                  <div className="finding-summary">{(["critical","high","medium","low","info"] as const).map((severity)=><span key={severity} className={`finding-count ${severity}`}>{counts[severity]} {severity}</span>)}</div>
+                  <p className="domain-note">These are observed configuration findings, not confirmed active attacks or live threat-feed intelligence.</p>
+                  {items.length ? <div className="finding-list">{items.slice(0,30).map((item,index)=><article className="finding-card" key={item.domain+item.code+item.date+index}><div><span className={`severity ${item.severity}`}>{item.severity}</span><strong>{item.title}</strong></div><p><strong>Domain:</strong> {item.domain} · <strong>Observed:</strong> {new Date(item.date).toLocaleString()}</p><p>{item.description}</p><small>Recommended action: {item.recommendation}</small></article>)}</div>:<p className="domain-empty">No findings recorded in completed assessments.</p>}
+                </>;
+              })()}
             </section>
           )}
 
