@@ -117,9 +117,11 @@ function finding(
 
 export async function auditVerifiedWebsite(hostname: string) {
   const address = await resolvePinnedAddress(hostname);
-  let response = await requestSite(hostname, address, "HEAD");
+  // Inspect the same response path browsers use. Some hosting platforms
+  // return different security headers for HEAD than for a normal page GET.
+  let response = await requestSite(hostname, address, "GET");
   if (response.statusCode === 405 || response.statusCode === 501) {
-    response = await requestSite(hostname, address, "GET");
+    response = await requestSite(hostname, address, "HEAD");
   }
 
   const findings: SecurityFinding[] = [];
