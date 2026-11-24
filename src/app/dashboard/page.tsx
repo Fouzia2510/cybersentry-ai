@@ -724,11 +724,23 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="empty-activity">
-                <span className="empty-activity-icon">✓</span>
-                <strong>No verified security activity yet</strong>
-                <p>Completed scans and verified findings will appear here. Sample events are never presented as real security alerts.</p>
-              </div>
+              {scans.length === 0 ? (
+                <div className="empty-activity">
+                  <span className="empty-activity-icon">✓</span>
+                  <strong>No verified security activity yet</strong>
+                  <p>Completed scans and verified findings will appear here. Sample events are never presented as real security alerts.</p>
+                </div>
+              ) : (
+                <div className="report-list activity-list">
+                  {scans.slice(0, 5).map((scan) => (
+                    <button className="report-row" key={scan.id} onClick={() => { setScanResult(scan); setSelectedScanDomain(scan.domain); setActive("Website Scanner"); }}>
+                      <span><strong>{scan.domain}</strong><small>{new Date(scan.created_at).toLocaleString()} · {scan.findings?.length ?? 0} findings</small></span>
+                      <span className="report-score">{scan.score}/100</span>
+                      <span>View →</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section className="content-panel intelligence-panel">
