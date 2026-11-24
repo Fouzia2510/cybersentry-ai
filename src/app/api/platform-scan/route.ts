@@ -14,7 +14,9 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "Your session has expired. Sign in again." }, { status: 401 });
     // Only scan this site's production hostname or a Netlify PR deploy preview.
     // Never accept an arbitrary Host header as a scan target.
-    const requestHostname = new URL(request.url).hostname.toLowerCase();
+    const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+    const requestHost = forwardedHost || request.headers.get("host") || new URL(request.url).host;
+    const requestHostname = new URL(`https://${requestHost}`).hostname.toLowerCase();
     const isPlatformProduction = requestHostname === PLATFORM_HOST;
     const isPlatformPreview = /^deploy-preview-\d+--cybersentry-ai-fouzia2510\.netlify\.app$/.test(requestHostname);
     if (!isPlatformProduction && !isPlatformPreview) {
