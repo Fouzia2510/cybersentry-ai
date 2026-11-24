@@ -76,9 +76,21 @@ export default function Home() {
     try {
       const response = await fetch("/api/platform-scan", { method: "POST", cache: "no-store" });
       const responseText = await response.text();
-      let result: { error?: string; scan?: Record<string, unknown> };
+      let result: {
+        error?: string;
+        scan?: {
+          id?: string | null;
+          domain: string;
+          score: number;
+          findings: ScanFinding[];
+          summary: Record<string, number>;
+          httpStatus: number;
+          tlsProtocol: string | null;
+          checkedAt: string;
+        };
+      };
       try {
-        result = JSON.parse(responseText) as { error?: string; scan?: Record<string, unknown> };
+        result = JSON.parse(responseText) as typeof result;
       } catch {
         throw new Error(`Scan service returned an unexpected response (HTTP ${response.status}).`);
       }
@@ -86,8 +98,22 @@ export default function Home() {
         setPlatformScanMessage(result.error || `Platform self-scan failed (HTTP ${response.status}).`);
         return;
       }
-      const scan = { ...result.scan, created_at: result.scan.checkedAt, status: "completed" };
+      if (!result.scan) {
+        throw new Error("Scan service returned no assessment report.");
+      }
+      const scan: ScanRecord = {
+        id: result.scan.id ?? `platform-${result.scan.checkedAt}`,
+        domain: result.scan.domain,
+        score: result.scan.score,
+        status: "completed",
+        findings: result.scan.findings,
+        summary: result.scan.summary,
+        http_status: result.scan.httpStatus,
+        tls_protocol: result.scan.tlsProtocol,
+        created_at: result.scan.checkedAt,
+      };
       setScanResult(scan);
+      setScans((current) => [scan, ...current.filter((item) => item.id !== scan.id)]);
       setPlatformScanMessage("Platform assessment completed and saved to Security Reports.");
     } catch (error) {
       setPlatformScanMessage(error instanceof Error ? error.message : "Could not reach the platform scan service.");
