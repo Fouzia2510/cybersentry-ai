@@ -50,8 +50,13 @@ async function resolvePinnedAddress(hostname: string) {
 
 function requestSite(hostname: string, address: string, method: "HEAD" | "GET"): Promise<SiteResponse> {
   return new Promise((resolve, reject) => {
-    const pinnedLookup = ((_: string, __: unknown, callback: (error: NodeJS.ErrnoException | null, address: string, family: number) => void) => {
-      callback(null, address, 4);
+    const pinnedLookup = ((_: string, options: unknown, callback: (...args: unknown[]) => void) => {
+      // Node may request either the single-address or all-address lookup shape.
+      if (typeof options === "object" && options !== null && "all" in options && (options as { all?: boolean }).all) {
+        callback(null, [{ address, family: 4 }]);
+      } else {
+        callback(null, address, 4);
+      }
     }) as NonNullable<import("node:https").RequestOptions["lookup"]>;
 
     const agent = new https.Agent({ keepAlive: false, lookup: pinnedLookup });
