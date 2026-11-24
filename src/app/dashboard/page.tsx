@@ -584,6 +584,7 @@ export default function Home() {
               <p className="domain-note">Platform self-scan is restricted to this CyberSentryAI Netlify hostname. Other websites still require DNS ownership verification.</p>
 
               <div className="scan-form">
+                <div className="url-input-wrap">
                   <span>◎</span>
                   <select
                     value={selectedScanDomain}
