@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       domain: validated.hostname,
       status: "verification_pending",
       recordType: "TXT",
-      recordName: `_cybersentryai.${validated.hostname}`,
+      recordName: `cybersentryai-verification.${validated.hostname}`,
       recordValue: `${expires}.${signature}`,
       expiresAt: new Date(expires * 1000).toISOString(),
       message: "Add this DNS TXT record, then request verification. No website scan has been started.",
