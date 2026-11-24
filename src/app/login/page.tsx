@@ -9,8 +9,11 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
 
   useEffect(() => {
-    const requestedMode = new URLSearchParams(window.location.search).get("mode");
-    if (requestedMode === "signup") setMode("signup");
+    const frame = window.requestAnimationFrame(() => {
+      const requestedMode = new URLSearchParams(window.location.search).get("mode");
+      if (requestedMode === "signup") setMode("signup");
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
