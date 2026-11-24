@@ -45,7 +45,8 @@ export default function Home() {
   const [domainActionMessage, setDomainActionMessage] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [refreshMessage, setRefreshMessage] = useState("");\n  const [vulnFilter, setVulnFilter] = useState("all");
+  const [refreshMessage, setRefreshMessage] = useState("");
+  const [vulnFilter, setVulnFilter] = useState("all");
 
   async function refreshScans() {
     setScanHistoryError("");
