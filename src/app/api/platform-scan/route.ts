@@ -12,12 +12,21 @@ export async function POST(request: Request) {
   try {
     const user = await getAuthenticatedUser(accessToken);
     if (!user) return NextResponse.json({ error: "Your session has expired. Sign in again." }, { status: 401 });
-    const audit = await auditVerifiedWebsite(PLATFORM_HOST);
+    // Only scan this site's production hostname or a Netlify PR deploy preview.
+    // Never accept an arbitrary Host header as a scan target.
+    const requestHostname = new URL(request.url).hostname.toLowerCase();
+    const isPlatformProduction = requestHostname === PLATFORM_HOST;
+    const isPlatformPreview = /^deploy-preview-\\d+--cybersentry-ai-fouzia2510\\.netlify\\.app$/.test(requestHostname);
+    if (!isPlatformProduction && !isPlatformPreview) {
+      return NextResponse.json({ error: "Platform self-scan is only available on the CyberSentryAI production site and its Netlify deploy previews." }, { status: 400 });
+    }
+
+    const audit = await auditVerifiedWebsite(requestHostname);
     const saved = await supabaseUserRequest("platform_security_scans?select=id,domain,score,findings,summary,http_status,tls_protocol,created_at", accessToken, {
       method: "POST",
       headers: { Prefer: "return=representation" },
       body: JSON.stringify({
-        user_id: user.id, domain: PLATFORM_HOST, score: audit.score, findings: audit.findings,
+        user_id: user.id, domain: requestHostname, score: audit.score, findings: audit.findings,
         summary: audit.summary, http_status: audit.httpStatus, tls_protocol: audit.tlsProtocol,
       }),
     });
