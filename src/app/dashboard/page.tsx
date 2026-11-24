@@ -47,6 +47,7 @@ export default function Home() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [refreshMessage, setRefreshMessage] = useState("");
   const [vulnFilter, setVulnFilter] = useState("all");
+  const [selectedReport, setSelectedReport] = useState<ScanRecord | null>(null);
 
   async function refreshScans() {
     setScanHistoryError("");
@@ -693,13 +694,13 @@ export default function Home() {
               <div className="panel-title"><div><h3>Security assessment reports</h3><p>Saved reports from your verified domains</p></div><button onClick={refreshScans}>↻ Refresh</button></div>
               {scanHistoryError && <p className="domain-error" role="alert">{scanHistoryError}</p>}
               {scans.length === 0 ? <p className="domain-empty">No saved reports yet. Run a security assessment on a verified domain to create your first report.</p> : (
-                <div className="report-list">{scans.map((scan) => (
-                  <button className="report-row" key={scan.id} onClick={() => { setScanResult(scan); setSelectedScanDomain(scan.domain); setActive("Website Scanner"); }}>
+                {selectedReport ? <div className="content-panel"><div className="panel-title"><div><h3>Report details</h3><p>{selectedReport.domain} · {new Date(selectedReport.created_at).toLocaleString()}</p></div><button onClick={()=>setSelectedReport(null)}>Back to history</button></div><div className="scan-result-heading"><div><span className="eyebrow">PASSIVE ASSESSMENT</span><h4>{selectedReport.domain}</h4><p>HTTP {selectedReport.http_status ?? "—"} · {selectedReport.tls_protocol ?? "TLS details unavailable"}</p></div><div className="scan-score"><strong>{selectedReport.score}</strong><span>/100</span></div></div><div className="finding-summary">{(["critical","high","medium","low","info"] as const).map(s=><span key={s} className={`finding-count ${s}`}>{selectedReport.summary?.[s] ?? 0} {s}</span>)}</div><div className="finding-list">{(selectedReport.findings||[]).map(f=><article className="finding-card" key={f.code}><div><span className={`severity ${f.severity}`}>{f.severity}</span><strong>{f.title}</strong></div><p>{f.description}</p>{f.evidence&&<p><strong>Evidence:</strong> {f.evidence}</p>}<small>Recommended action: {f.recommendation}</small></article>)}</div><button className="scan-button" onClick={()=>window.print()}>Print / Save PDF</button>{(()=>{const previous=scans.filter(s=>s.domain===selectedReport.domain&&s.id!==selectedReport.id&&Date.parse(s.created_at)<Date.parse(selectedReport.created_at)).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at))[0];return previous?<div className="domain-note"><strong>Previous assessment comparison:</strong> Score {previous.score} → {selectedReport.score} ({selectedReport.score-previous.score>=0?"+":""}{selectedReport.score-previous.score} points). Findings: {previous.findings?.length??0} → {selectedReport.findings?.length??0}. Comparison uses the previous saved assessment for this domain.</div>:<p className="domain-note">No earlier report for this domain is available to compare.</p>})()}</div> : <div className="report-list">{scans.map((scan) => (
+                  <button className="report-row" key={scan.id} onClick={() => setSelectedReport(scan)}>
                     <span><strong>{scan.domain}</strong><small>{new Date(scan.created_at).toLocaleString()} · {scan.findings?.length ?? 0} findings</small></span>
                     <span className="report-score">{scan.score}/100</span>
-                    <span>View →</span>
+                    <span>Details →</span>
                   </button>
-                ))}</div>
+                ))}</div>}
               )}
             </section>
           )}
