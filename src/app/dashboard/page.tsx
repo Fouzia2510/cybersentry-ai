@@ -74,17 +74,23 @@ export default function Home() {
     setPlatformScanning(true);
     setPlatformScanMessage("Running a restricted passive scan of the CyberSentryAI platform...");
     try {
-      const response = await fetch("/api/platform-scan", { method: "POST" });
-      const result = await response.json();
+      const response = await fetch("/api/platform-scan", { method: "POST", cache: "no-store" });
+      const responseText = await response.text();
+      let result: { error?: string; scan?: Record<string, unknown> };
+      try {
+        result = JSON.parse(responseText) as { error?: string; scan?: Record<string, unknown> };
+      } catch {
+        throw new Error(`Scan service returned an unexpected response (HTTP ${response.status}).`);
+      }
       if (!response.ok) {
-        setPlatformScanMessage(result.error || "Platform self-scan could not be completed.");
+        setPlatformScanMessage(result.error || `Platform self-scan failed (HTTP ${response.status}).`);
         return;
       }
       const scan = { ...result.scan, created_at: result.scan.checkedAt, status: "completed" };
       setScanResult(scan);
       setPlatformScanMessage("Platform assessment completed and saved to Security Reports.");
-    } catch {
-      setPlatformScanMessage("Could not reach the platform scan service. Please try again.");
+    } catch (error) {
+      setPlatformScanMessage(error instanceof Error ? error.message : "Could not reach the platform scan service.");
     } finally {
       setPlatformScanning(false);
     }
