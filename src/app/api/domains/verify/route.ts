@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     }
 
     let records: string[][];
-    try { records = await resolveTxt(`_cybersentryai.${validated.hostname}`); } catch {
+    try { records = await resolveTxt(`cybersentryai-verification.${validated.hostname}`); } catch {
       return NextResponse.json({ error: "DNS TXT record was not found yet. Add the record and try again." }, { status: 409 });
     }
     if (!records.some((record) => record.join("") === token)) {
