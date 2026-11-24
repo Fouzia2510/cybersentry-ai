@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     // Never accept an arbitrary Host header as a scan target.
     const requestHostname = new URL(request.url).hostname.toLowerCase();
     const isPlatformProduction = requestHostname === PLATFORM_HOST;
-    const isPlatformPreview = /^deploy-preview-\\d+--cybersentry-ai-fouzia2510\\.netlify\\.app$/.test(requestHostname);
+    const isPlatformPreview = /^deploy-preview-\d+--cybersentry-ai-fouzia2510\.netlify\.app$/.test(requestHostname);
     if (!isPlatformProduction && !isPlatformPreview) {
       return NextResponse.json({ error: "Platform self-scan is only available on the CyberSentryAI production site and its Netlify deploy previews." }, { status: 400 });
     }
