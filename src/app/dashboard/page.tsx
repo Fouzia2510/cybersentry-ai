@@ -445,7 +445,7 @@ export default function Home() {
                       placeholder="example.com"
                       autoComplete="url"
                     />
-                    <button onClick={createDomainChallenge} disabled={domainActionBusy || !domainInput.trim()}>
+                    <button onClick={() => void createDomainChallenge()} disabled={domainActionBusy || !domainInput.trim()}>
                       {domainActionBusy ? "Please wait..." : "Connect domain"}
                     </button>
                   </div>
