@@ -690,7 +690,7 @@ export default function Home() {
           )}
 
           {active === "Security Reports" && (
-            <section className="content-panel report-panel">
+            <section id="security-reports-panel" className="content-panel report-panel">
               <div className="panel-title"><div><h3>Security assessment reports</h3><p>Saved reports from your completed assessments</p></div><button onClick={refreshScans}>↻ Refresh</button></div>
               {scanHistoryError && <p className="domain-error" role="alert">{scanHistoryError}</p>}
               {scans.length === 0 ? <p className="domain-empty">No saved reports yet. Run an assessment to create your first report.</p> : selectedReport ? (
@@ -755,7 +755,7 @@ export default function Home() {
                   <h3>Security activity</h3>
                   <p>Verified findings from completed security scans</p>
                 </div>
-                <button type="button" aria-label="Open Security Reports" onClick={() => { setSelectedReport(null); setActive("Security Reports"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                <button type="button" aria-label="Open Security Reports" onClick={() => { setSelectedReport(null); setActive("Security Reports"); document.getElementById("security-reports-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
                   View reports →
                 </button>
               </div>
