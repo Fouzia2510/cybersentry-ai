@@ -23,6 +23,8 @@ export default function Home() {
   const [authError, setAuthError] = useState("");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [platformScanning, setPlatformScanning] = useState(false);
+  const [platformScanMessage, setPlatformScanMessage] = useState("");
   const [scanMessage, setScanMessage] = useState("");
   const [selectedScanDomain, setSelectedScanDomain] = useState("");
   const [scans, setScans] = useState<ScanRecord[]>([]);
@@ -58,6 +60,26 @@ export default function Home() {
       if (result.scans?.[0]) setScanResult(result.scans[0]);
     } catch {
       setScanHistoryError("Could not reach the scan history service.");
+    }
+  }
+
+  async function startPlatformScan() {
+    setPlatformScanning(true);
+    setPlatformScanMessage("Running a restricted passive scan of the CyberSentryAI platform...");
+    try {
+      const response = await fetch("/api/platform-scan", { method: "POST" });
+      const result = await response.json();
+      if (!response.ok) {
+        setPlatformScanMessage(result.error || "Platform self-scan could not be completed.");
+        return;
+      }
+      const scan = { ...result.scan, created_at: result.scan.checkedAt, status: "completed" };
+      setScanResult(scan);
+      setPlatformScanMessage("Platform assessment completed and saved to Security Reports.");
+    } catch {
+      setPlatformScanMessage("Could not reach the platform scan service. Please try again.");
+    } finally {
+      setPlatformScanning(false);
     }
   }
 
@@ -544,6 +566,17 @@ export default function Home() {
 
               <div className="scan-form">
                 <div className="url-input-wrap">
+                  <span>◎</span>
+                  <input aria-label="Platform self-scan target" value="cybersentry-ai-fouzia2510.netlify.app · Platform self-scan" readOnly />
+                </div>
+                <button className="scan-button" onClick={startPlatformScan} disabled={platformScanning}>
+                  {platformScanning ? "Assessing platform..." : "Run platform self-scan →"}
+                </button>
+              </div>
+              {platformScanMessage && <div className="scan-message" role="status">{platformScanMessage}</div>}
+              <p className="domain-note">Platform self-scan is restricted to this CyberSentryAI Netlify hostname. Other websites still require DNS ownership verification.</p>
+
+              <div className="scan-form">
                   <span>◎</span>
                   <select
                     value={selectedScanDomain}
