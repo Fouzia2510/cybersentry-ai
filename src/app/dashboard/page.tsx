@@ -755,7 +755,7 @@ export default function Home() {
                   <h3>Security activity</h3>
                   <p>Verified findings from completed security scans</p>
                 </div>
-                <button onClick={() => setActive("Security Reports")}>
+                <button type="button" aria-label="Open Security Reports" onClick={() => { setSelectedReport(null); setActive("Security Reports"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                   View reports →
                 </button>
               </div>
