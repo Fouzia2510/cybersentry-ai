@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auditVerifiedWebsite } from "@/lib/security/site-audit";
 import { getAccessToken, getAuthenticatedUser, isSameOriginRequest, supabaseUserRequest } from "@/lib/supabase-rest";
 
+export const runtime = "nodejs";
+
 const PLATFORM_HOST = "cybersentry-ai-fouzia2510.netlify.app";
 
 export async function POST(request: Request) {
