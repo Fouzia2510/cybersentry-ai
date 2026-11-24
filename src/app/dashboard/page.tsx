@@ -50,14 +50,21 @@ export default function Home() {
   async function refreshScans() {
     setScanHistoryError("");
     try {
-      const response = await fetch("/api/scans", { cache: "no-store" });
-      const result = await response.json();
+      const [response, platformResponse] = await Promise.all([
+        fetch("/api/scans", { cache: "no-store" }),
+        fetch("/api/platform-scan", { cache: "no-store" }),
+      ]);
+      const [result, platformResult] = await Promise.all([response.json(), platformResponse.json()]);
       if (!response.ok) {
         setScanHistoryError(result.error || "Could not load scan history.");
         return;
       }
-      setScans(result.scans || []);
-      if (result.scans?.[0]) setScanResult(result.scans[0]);
+      const combined = [
+        ...(result.scans || []),
+        ...(platformResponse.ok ? (platformResult.scans || []).map((scan: ScanRecord) => ({ ...scan, status: "completed" })) : []),
+      ].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+      setScans(combined);
+      if (combined[0]) setScanResult(combined[0]);
     } catch {
       setScanHistoryError("Could not reach the scan history service.");
     }
