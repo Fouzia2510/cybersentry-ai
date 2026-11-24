@@ -45,7 +45,7 @@ export default function Home() {
   const [domainActionMessage, setDomainActionMessage] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [refreshMessage, setRefreshMessage] = useState("");
+  const [refreshMessage, setRefreshMessage] = useState("");\n  const [vulnFilter, setVulnFilter] = useState("all");
 
   async function refreshScans() {
     setScanHistoryError("");
@@ -721,10 +721,20 @@ export default function Home() {
 
           {active === "Vulnerabilities" && (
             <section className="content-panel report-panel">
-              <div className="panel-title"><div><h3>Vulnerability findings</h3><p>Findings from your latest completed assessment</p></div><button onClick={() => setActive("Website Scanner")}>Run assessment →</button></div>
-              {scanResult?.findings?.length ? <div className="finding-list">{scanResult.findings.map((finding) => (
-                <article className="finding-card" key={finding.code}><div><span className={`severity ${finding.severity}`}>{finding.severity}</span><strong>{finding.title}</strong></div><p>{finding.description}</p><small>Recommended action: {finding.recommendation}</small></article>
-              ))}</div> : <p className="domain-empty">No findings are available yet. Complete a scan of a verified domain to populate this workspace.</p>}
+              <div className="panel-title"><div><h3>Vulnerability findings</h3><p>Prioritized findings from your latest completed assessment — passive checks only</p></div><button onClick={() => setActive("Website Scanner")}>Run assessment →</button></div>
+              {scanResult?.findings?.length ? (() => {
+                const severityOrder = ["critical", "high", "medium", "low", "info"];
+                const filtered = scanResult.findings.filter((f) => vulnFilter === "all" || f.severity.toLowerCase() === vulnFilter);
+                const sorted = [...filtered].sort((a,b) => severityOrder.indexOf(a.severity.toLowerCase()) - severityOrder.indexOf(b.severity.toLowerCase()) || a.title.localeCompare(b.title));
+                return <>
+                  <div className="finding-summary">{severityOrder.map((severity) => <button type="button" key={severity} className={`finding-count ${severity}`} onClick={() => setVulnFilter(severity)}>{scanResult.summary?.[severity] ?? scanResult.findings.filter(f=>f.severity.toLowerCase()===severity).length} {severity}</button>)}</div>
+                  <div className="scan-form"><div className="url-input-wrap"><select aria-label="Filter vulnerabilities by severity" value={vulnFilter} onChange={(event)=>setVulnFilter(event.target.value)}><option value="all">All severities</option>{severityOrder.map(s=><option key={s} value={s}>{s[0].toUpperCase()+s.slice(1)}</option>)}</select></div><span className="refresh-meta">{filtered.length} finding(s) · {scanResult.domain}</span></div>
+                  {sorted.length ? <div className="finding-list">{sorted.map((finding) => (
+                    <article className="finding-card" key={finding.code}><div><span className={`severity ${finding.severity}`}>{finding.severity}</span><strong>{finding.title}</strong></div><p>{finding.description}</p>{finding.evidence && <p><strong>Evidence:</strong> {finding.evidence}</p>}<small>Recommended action: {finding.recommendation}</small></article>
+                  ))}</div> : <p className="domain-empty">No findings match this severity filter.</p>}
+                  <p className="domain-note">Findings describe observed configuration weaknesses, not proof of exploitation. Severity is based on the assessment rule, not a live threat signal.</p>
+                </>;
+              })() : <p className="domain-empty">No findings are available yet. Complete a scan to populate this workspace.</p>}
             </section>
           )}
 
