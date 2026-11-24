@@ -131,7 +131,7 @@ export default function Home() {
     }
   }
 
-  async function createDomainChallenge() {
+  async function createDomainChallenge(domainToVerify?: string) {
     if (!userEmail) {
       setDomainActionMessage("Sign in first to connect a domain.");
       return;
@@ -143,7 +143,7 @@ export default function Home() {
       const response = await fetch("/api/domains", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: domainInput }),
+        body: JSON.stringify({ domain: domainToVerify ?? domainInput }),
       });
       const result = await response.json();
       if (!response.ok) {
@@ -477,15 +477,15 @@ export default function Home() {
               ) : (
                 <div className="domain-list">
                   {domains.map((domain) => (
-                    <div className="domain-row" key={domain.id}>
-                      <div>
+                    <button type="button" className="domain-row domain-row-button" key={domain.id} onClick={() => void createDomainChallenge(domain.domain)} disabled={domainActionBusy || domain.verificationStatus === "verified"} aria-label={`Open DNS verification for ${domain.domain}`}>
+                      <span>
                         <strong>{domain.domain}</strong>
                         <small>Added {new Date(domain.createdAt).toLocaleDateString()}</small>
-                      </div>
-                      <span className={domain.verificationStatus === "verified" ? "domain-status verified" : "domain-status pending"}>
-                        {domain.verificationStatus}
                       </span>
-                    </div>
+                      <span className={domain.verificationStatus === "verified" ? "domain-status verified" : "domain-status pending"}>
+                        {domain.verificationStatus === "pending" ? "pending · Verify →" : "verified"}
+                      </span>
+                    </button>
                   ))}
                 </div>
               )}
