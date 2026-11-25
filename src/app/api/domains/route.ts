@@ -54,13 +54,28 @@ export async function POST(request: Request) {
     }
     const expires = Math.floor(Date.now() / 1000) + CHALLENGE_TTL_SECONDS;
     const signature = createHmac("sha256", secret).update(`cybersentryai:v1:${validated.hostname}:${expires}`).digest("hex");
+    const recordValue = `${expires}.${signature}`;
+    // If this is a DuckDNS hostname and the token is configured, publish the TXT value
+    // on the DuckDNS-managed apex hostname. Never expose the token to the client.
+    if (validated.hostname.endsWith(".duckdns.org") && process.env.DUCKDNS_TOKEN) {
+      const duckdns = new URL("https://www.duckdns.org/update");
+      duckdns.searchParams.set("domains", validated.hostname.replace(/\.duckdns\.org$/i, ""));
+      duckdns.searchParams.set("token", process.env.DUCKDNS_TOKEN);
+      duckdns.searchParams.set("txt", recordValue);
+      duckdns.searchParams.set("verbose", "true");
+      const update = await fetch(duckdns.toString(), { cache: "no-store" });
+      const updateText = (await update.text()).trim();
+      if (!update.ok || !updateText.toLowerCase().startsWith("ok")) {
+        return NextResponse.json({ error: "DuckDNS could not publish the TXT challenge. Check the server-side DUCKDNS_TOKEN and try again." }, { status: 502 });
+      }
+    }
     return NextResponse.json({
       ok: true,
       domain: validated.hostname,
       status: "verification_pending",
       recordType: "TXT",
-      recordName: `cybersentryai-verification.${validated.hostname}`,
-      recordValue: `${expires}.${signature}`,
+      recordName: validated.hostname.endsWith(".duckdns.org") ? validated.hostname : `cybersentryai-verification.${validated.hostname}`,
+      recordValue,
       expiresAt: new Date(expires * 1000).toISOString(),
       message: "Add this DNS TXT record, then request verification. No website scan has been started.",
     });
