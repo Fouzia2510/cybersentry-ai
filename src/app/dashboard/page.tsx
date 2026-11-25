@@ -829,14 +829,14 @@ export default function Home() {
 
               <div className="ai-status">
                 <span className="status-dot muted" />
-                AI engine not connected
+                Offline rule-based analysis · Free
               </div>
 
               <button
                 className="ai-button"
-                onClick={() => setActive("Threat Intelligence")}
+                onClick={() => { setSelectedReport(scans[0] || null); setActive("Security Reports"); }}
               >
-                Explore intelligence →
+                Analyze latest report →
               </button>
             </section>
           </div>
