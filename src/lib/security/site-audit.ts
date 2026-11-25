@@ -89,7 +89,7 @@ function requestSite(hostname: string, address: string, method: "HEAD" | "GET"):
       resolve(result);
     });
 
-    request.setTimeout(8000, () => request.destroy(new Error("The website did not respond within 8 seconds.")));
+    request.setTimeout(8000, () => request.destroy(new Error("HTTPS connection timed out after 8 seconds. The domain resolved, but no web-server response completed on port 443. Confirm HTTPS hosting is configured and reachable.")));
     request.once("error", (error) => {
       agent.destroy();
       reject(error);
@@ -116,10 +116,26 @@ function finding(
 }
 
 export async function auditVerifiedWebsite(hostname: string) {
-  const address = await resolvePinnedAddress(hostname);
+  let address: string;
+  try {
+    address = await resolvePinnedAddress(hostname);
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code) : "";
+    if (code === "ENOTFOUND" || code === "EAI_AGAIN") throw new Error("DNS lookup failed or is temporarily unavailable. Confirm the domain DNS records and try again.");
+    throw error;
+  }
   // Inspect the same response path browsers use. Some hosting platforms
   // return different security headers for HEAD than for a normal page GET.
-  let response = await requestSite(hostname, address, "GET");
+  let response: SiteResponse;
+  try {
+    response = await requestSite(hostname, address, "GET");
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code) : "";
+    if (code === "ECONNREFUSED") throw new Error("The domain resolved, but its HTTPS server refused the connection on port 443. Configure an HTTPS web server before scanning.");
+    if (code === "CERT_HAS_EXPIRED" || code === "CERT_INVALID" || code === "ERR_TLS_CERT_ALTNAME_INVALID") throw new Error("The HTTPS connection failed certificate validation. Check the site TLS certificate and hostname.");
+    if (error instanceof Error && error.message.includes("timed out")) throw error;
+    throw new Error("Could not establish a safe HTTPS connection. Check that a website is hosted on this domain and HTTPS is enabled.");
+  }
   if (response.statusCode === 405 || response.statusCode === 501) {
     response = await requestSite(hostname, address, "HEAD");
   }
