@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       ], max_output_tokens: 700 }),
       cache: "no-store"
     });
-    if (!response.ok) return NextResponse.json({ error: "AI analysis provider returned an error. Check the API account and key." }, { status: 502 });
+    if (!response.ok) {\n      const providerData = await response.json().catch(() => null);\n      const providerMessage = typeof providerData?.error?.message === "string" ? providerData.error.message.slice(0, 300) : "Unknown provider error";\n      const providerCode = typeof providerData?.error?.code === "string" ? providerData.error.code.slice(0, 80) : undefined;\n      return NextResponse.json({ error: `AI provider error (${response.status}): ${providerMessage}${providerCode ? ` [${providerCode}]` : ""}` }, { status: 502 });\n    }
     const data = await response.json();
     const text = (data.output || []).flatMap((o: any) => o.content || []).find((c: any) => c.type === "output_text")?.text;
     if (!text) return NextResponse.json({ error: "AI provider returned no analysis." }, { status: 502 });
