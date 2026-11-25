@@ -55,12 +55,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Verification token is invalid." }, { status: 400 });
     }
 
-    let records: string[][];
-    try { records = await resolveTxt(`cybersentryai-verification.${validated.hostname}`); } catch {
-      return NextResponse.json({ error: "DNS TXT record was not found yet. Add the record and try again." }, { status: 409 });
+    // Check the dedicated verification subdomain first, then the apex TXT record.
+    // Providers such as DuckDNS expose TXT updates on the apex hostname.
+    let matched = false;
+    for (const txtHost of [`cybersentryai-verification.${validated.hostname}`, validated.hostname]) {
+      try {
+        const records = await resolveTxt(txtHost);
+        if (records.some((record) => record.join("") === token)) {
+          matched = true;
+          break;
+        }
+      } catch {
+        // Continue to the alternate TXT host.
+      }
     }
-    if (!records.some((record) => record.join("") === token)) {
-      return NextResponse.json({ error: "DNS TXT value does not match. Check the record and try again." }, { status: 409 });
+    if (!matched) {
+      return NextResponse.json({ error: "DNS TXT value was not found or did not match. Add the exact challenge value to your DNS provider and retry." }, { status: 409 });
     }
 
     const verified = await supabaseUserRequest("rpc/mark_domain_verified", accessToken, {
