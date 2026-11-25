@@ -12,10 +12,20 @@ type SupabaseSession = {
 };
 
 export function getSupabaseConfig() {
-  const url = "https://ktwelgkrualgvfjubzvb.supabase.co";
+  const configuredUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) throw new Error("Supabase environment variables are not configured.");
-  return { url, key };
+  if (!configuredUrl || !key) throw new Error("Supabase environment variables are not configured.");
+
+  let parsed: URL;
+  try {
+    parsed = new URL(configuredUrl);
+  } catch {
+    throw new Error("Supabase URL is invalid.");
+  }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) {
+    throw new Error("Supabase URL must be a valid HTTPS project origin.");
+  }
+  return { url: parsed.origin, key };
 }
 
 export function isSameOriginRequest(request: Request) {
