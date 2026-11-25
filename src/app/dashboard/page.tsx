@@ -607,6 +607,21 @@ export default function Home() {
             </article>
           </div>
 
+          {active === "Overview" && scans.length > 0 && (() => {
+            const latestByDomain = new Map<string, ScanRecord>();
+            for (const scan of scans) if (!latestByDomain.has(scan.domain)) latestByDomain.set(scan.domain, scan);
+            const alerts = Array.from(latestByDomain.values()).flatMap((latest) => {
+              const previous = scans.filter((s) => s.domain === latest.domain && s.id !== latest.id && Date.parse(s.created_at) < Date.parse(latest.created_at)).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at))[0];
+              if (!previous) return [];
+              const oldCodes = new Set((previous.findings || []).map((f) => f.code));
+              const newFindings = (latest.findings || []).filter((f) => !oldCodes.has(f.code));
+              const worsened = latest.score < previous.score;
+              return newFindings.length || worsened ? [{domain: latest.domain, latest, previous, newFindings, worsened}] : [];
+            });
+            return <section className="content-panel report-panel"><div className="panel-title"><div><h3>Assessment change alerts</h3><p>Changes detected by comparing saved scans — not continuous monitoring</p></div><button onClick={() => setActive("Security Reports")}>Review reports →</button></div>
+              {alerts.length ? <div className="finding-list">{alerts.map((alert) => <article className="finding-card" key={alert.domain}><div><span className="severity high">Change</span><strong>{alert.domain}</strong></div><p>{alert.newFindings.length} new finding(s) since the previous saved assessment. Score: {alert.previous.score} → {alert.latest.score}{alert.worsened ? " (declined)" : ""}.</p>{alert.newFindings.slice(0,5).map((f)=><p key={f.code}><strong>{f.severity}:</strong> {f.title}</p>)}<button className="scan-button" onClick={()=>{setSelectedReport(alert.latest);setActive("Security Reports");}}>Open latest report →</button></article>)}</div> : <p className="domain-empty">No new findings or score declines compared with the previous saved report for each domain.</p>}
+            </section>;
+          })()}
           {(active === "Overview" || active === "Website Scanner") && (
             <section className="scanner-panel">
               <div className="panel-heading">
