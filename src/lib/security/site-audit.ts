@@ -140,6 +140,16 @@ export async function auditVerifiedWebsite(hostname: string) {
     response = await requestSite(hostname, address, "HEAD");
   }
 
+  // A reachable error page or redirect is not a completed security assessment.
+  // Do not award a misleading score from headers on an authentication/error page
+  // or silently follow redirects to a different host.
+  if (response.statusCode >= 300 && response.statusCode < 400) {
+    throw new Error(`The HTTPS server redirected this domain (HTTP ${response.statusCode}). Configure the verified hostname to serve the website directly over HTTPS, then scan again.`);
+  }
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw new Error(`The HTTPS server returned HTTP ${response.statusCode}. The page could not be assessed reliably; fix the website response and try again.`);
+  }
+
   const findings: SecurityFinding[] = [];
   const headers = response.headers;
   const csp = typeof headers["content-security-policy"] === "string" ? headers["content-security-policy"] : "";
