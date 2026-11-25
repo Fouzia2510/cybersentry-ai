@@ -76,6 +76,7 @@ function requestSite(hostname: string, address: string, method: "HEAD" | "GET"):
         ...(method === "GET" ? { Range: "bytes=0-0" } : {}),
       },
     }, (response) => {
+      clearTimeout(deadline);
       const socket = response.socket as TLSSocket;
       const certificate = socket.getPeerCertificate();
       const result: SiteResponse = {
@@ -89,8 +90,13 @@ function requestSite(hostname: string, address: string, method: "HEAD" | "GET"):
       resolve(result);
     });
 
-    request.setTimeout(8000, () => request.destroy(new Error("HTTPS connection timed out after 8 seconds. The domain resolved, but no web-server response completed on port 443. Confirm HTTPS hosting is configured and reachable.")));
+    // Enforce a wall-clock deadline, not only an idle-socket timeout. A server
+    // that slowly trickles response bytes must not keep a scan worker occupied.
+    const deadline = setTimeout(() => {
+      request.destroy(new Error("HTTPS connection timed out after 8 seconds. The domain resolved, but no web-server response completed on port 443. Confirm HTTPS hosting is configured and reachable."));
+    }, 8000);
     request.once("error", (error) => {
+      clearTimeout(deadline);
       agent.destroy();
       reject(error);
     });
