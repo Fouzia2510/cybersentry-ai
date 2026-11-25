@@ -25,26 +25,5 @@ export async function POST(request: Request) {
     const items = ordered.map((f: any, i: number) => `${i + 1}. [${f.severity}] ${f.title}\n   Observed: ${f.description || f.evidence || "No detail supplied."}\n   Recommended action: ${f.recommendation || "Review this configuration and apply the vendor-recommended secure setting."}`).join("\n\n");
     return `RULE-BASED SECURITY REVIEW (offline fallback)\n\nDomain: ${domain}\nScore: ${Number.isFinite(score) ? score : "unknown"}/100\n\nPrioritize findings by severity. Address critical and high severity items first, then medium and low findings.\n\n${items}\n\nFinding counts: ${counts}\n\nThis deterministic review uses only report data; no external AI service was used.`;
   };
-  const fallback = (notice: string) => NextResponse.json({ ok: true, analysis: ruleBasedAnalysis(), mode: "rule-based", notice });
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return fallback("External AI is not configured; offline analysis used.");
-  try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-4.1-mini", input: [
-        { role: "system", content: "You are a defensive website security analyst. Analyze only the supplied passive scan results. Do not claim exploitation, active attacks, or unobserved vulnerabilities. Give concise prioritized risk explanation, impact in plain language, remediation steps, and a short executive summary. Clearly note limitations." },
-        { role: "user", content: JSON.stringify({ domain, score: Number.isFinite(score) ? score : null, findings }) }
-      ], max_output_tokens: 700 }), cache: "no-store"
-    });
-    if (!response.ok) {
-      await response.json().catch(() => null);
-      return fallback("External AI unavailable; offline analysis used.");
-    }
-    const data = await response.json();
-    const analysis = (data.output || []).flatMap((o: any) => o.content || []).find((c: any) => c.type === "output_text")?.text;
-    if (!analysis) return fallback("External AI returned no content; offline analysis used.");
-    return NextResponse.json({ ok: true, analysis, mode: "external-ai" });
-  } catch {
-    return fallback("External AI could not be reached; offline analysis used.");
-  }
+  return NextResponse.json({ ok: true, analysis: ruleBasedAnalysis(), mode: "rule-based", notice: "Offline analysis only. No external AI service or paid API is used." });
 }
