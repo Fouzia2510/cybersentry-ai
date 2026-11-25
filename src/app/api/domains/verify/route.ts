@@ -55,22 +55,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Verification token is invalid." }, { status: 400 });
     }
 
-    // Check the dedicated verification subdomain first, then the apex TXT record.
-    // Providers such as DuckDNS expose TXT updates on the apex hostname.
+    // Check both supported TXT locations and briefly retry DNS propagation.
+    // DuckDNS publishes challenge TXT at the apex hostname.
     let matched = false;
-    for (const txtHost of [`cybersentryai-verification.${validated.hostname}`, validated.hostname]) {
-      try {
-        const records = await resolveTxt(txtHost);
-        if (records.some((record) => record.join("") === token)) {
-          matched = true;
-          break;
+    let lastDnsError = "";
+    const txtHosts = [`cybersentryai-verification.${validated.hostname}`, validated.hostname];
+    for (let attempt = 0; attempt < 4 && !matched; attempt++) {
+      for (const txtHost of txtHosts) {
+        try {
+          const records = await resolveTxt(txtHost);
+          if (records.some((record) => record.join("") === token)) {
+            matched = true;
+            break;
+          }
+        } catch (error) {
+          lastDnsError = error instanceof Error ? error.message : "DNS lookup failed";
         }
-      } catch {
-        // Continue to the alternate TXT host.
       }
+      if (!matched && attempt < 3) await new Promise((resolve) => setTimeout(resolve, 1500));
     }
     if (!matched) {
-      return NextResponse.json({ error: "DNS TXT value was not found or did not match. Add the exact challenge value to your DNS provider and retry." }, { status: 409 });
+      const duckdns = validated.hostname.endsWith(".duckdns.org");
+      return NextResponse.json({ error: duckdns
+        ? "DuckDNS TXT challenge was published but is not visible in DNS yet. Wait a few seconds and retry Verify. " + (lastDnsError ? "DNS detail: " + lastDnsError : "")
+        : "DNS TXT value was not found or did not match. Add the exact challenge value to your DNS provider and retry." }, { status: 409 });
     }
 
     const verified = await supabaseUserRequest("rpc/mark_domain_verified", accessToken, {
