@@ -19,43 +19,58 @@ export async function GET() {
     );
   }
 
+  let targetHost: string | undefined;
   try {
     const baseUrl = new URL(supabaseUrl);
+    targetHost = baseUrl.hostname;
     if (baseUrl.protocol !== "https:") {
       return NextResponse.json(
         {
           ok: true,
           checkedAt: new Date().toISOString(),
-          supabase: { status: "unreachable" },
+          supabase: { status: "invalid_url_protocol" },
         },
         { headers: noStoreHeaders },
       );
     }
 
-    const response = await fetch(new URL("/rest/v1/", baseUrl), {
+    // Probe the same Supabase Auth service used by sign-in.
+    const response = await fetch(new URL("/auth/v1/health", baseUrl), {
       method: "GET",
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-      },
+      headers: { apikey: supabaseKey },
       cache: "no-store",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(8000),
     });
 
     return NextResponse.json(
       {
         ok: true,
         checkedAt: new Date().toISOString(),
-        supabase: { status: response.ok ? "reachable" : "unreachable" },
+        supabase: response.ok
+          ? { status: "reachable" }
+          : { status: "auth_http_error", httpStatus: response.status },
       },
       { headers: noStoreHeaders },
     );
-  } catch {
+  } catch (error) {
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+    const cause = error instanceof Error ? error.cause : undefined;
+    const causeCode =
+      typeof cause === "object" && cause !== null && "code" in cause &&
+      typeof cause.code === "string" && /^[A-Z0-9_]+$/.test(cause.code)
+        ? cause.code
+        : undefined;
+
     return NextResponse.json(
       {
         ok: true,
         checkedAt: new Date().toISOString(),
-        supabase: { status: "unreachable" },
+        supabase: {
+          status: errorName === "TimeoutError" ? "timeout" : "connection_error",
+          errorName,
+          ...(targetHost ? { targetHost } : {}),
+          ...(causeCode ? { causeCode } : {}),
+        },
       },
       { headers: noStoreHeaders },
     );
