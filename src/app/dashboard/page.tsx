@@ -48,6 +48,19 @@ export default function Home() {
   const [refreshMessage, setRefreshMessage] = useState("");
   const [vulnFilter, setVulnFilter] = useState("all");
   const [selectedReport, setSelectedReport] = useState<ScanRecord | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
+
+  async function analyzeReport(scan: ScanRecord) {
+    setAiBusy(true); setAiError(""); setAiAnalysis("");
+    try {
+      const response = await fetch("/api/ai-analyst", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ domain: scan.domain, score: scan.score, findings: scan.findings }) });
+      const result = await response.json();
+      if (!response.ok) { setAiError(result.error || "Analysis failed."); return; }
+      setAiAnalysis(result.analysis || "No analysis returned.");
+    } catch { setAiError("Could not connect to AI Analyst."); } finally { setAiBusy(false); }
+  }
 
   async function refreshScans() {
     setScanHistoryError("");
@@ -700,6 +713,7 @@ export default function Home() {
                   <div className="finding-summary">{(["critical","high","medium","low","info"] as const).map(s=><span key={s} className={`finding-count ${s}`}>{selectedReport.summary?.[s] ?? 0} {s}</span>)}</div>
                   <div className="finding-list">{(selectedReport.findings||[]).map(f=><article className="finding-card" key={f.code}><div><span className={`severity ${f.severity}`}>{f.severity}</span><strong>{f.title}</strong></div><p>{f.description}</p>{f.evidence&&<p><strong>Evidence:</strong> {f.evidence}</p>}<small>Recommended action: {f.recommendation}</small></article>)}</div>
                   <button className="scan-button" onClick={()=>window.print()}>Print / Save PDF</button>
+                  <div className="content-panel"><div className="panel-title"><div><h3>AI Security Analyst</h3><p>AI interpretation of this passive scan report</p></div></div><button className="scan-button" disabled={aiBusy} onClick={() => analyzeReport(selectedReport)}>{aiBusy ? "Analyzing report..." : "✦ Analyze with AI"}</button>{aiError && <p className="domain-error" role="alert">{aiError}</p>}{aiAnalysis && <article className="finding-card"><p style={{whiteSpace:"pre-wrap"}}>{aiAnalysis}</p></article>}</div>
                   {(()=>{const previous=scans.filter(s=>s.domain===selectedReport.domain&&s.id!==selectedReport.id&&Date.parse(s.created_at)<Date.parse(selectedReport.created_at)).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at))[0];return previous?<div className="domain-note"><strong>Previous assessment comparison:</strong> Score {previous.score} → {selectedReport.score} ({selectedReport.score-previous.score>=0?"+":""}{selectedReport.score-previous.score} points). Findings: {previous.findings?.length??0} → {selectedReport.findings?.length??0}. Comparison uses the previous saved assessment for this domain.</div>:<p className="domain-note">No earlier report for this domain is available to compare.</p>})()}
                 </div>
               ) : (
